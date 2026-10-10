@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "higgsfield-clone": {
+      "command": "node",
+      "args": ["mcp/server.mjs"],
+      "env": { "APP_URL": "http://localhost:3000" }
+    }
+  }
+}
