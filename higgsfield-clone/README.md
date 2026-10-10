@@ -23,12 +23,20 @@ Die App hat eine HTTP-API (`POST /api/generate`, `GET /api/library`) und einen M
 
 Mit `PROVIDER=local` entstehen Bilder auf deinem eigenen Rechner. Es kostet nichts, es gibt kein Limit und nichts verlässt den Mac.
 
+Führe die Befehle einzeln aus und kopiere **keine** `#`-Kommentare mit (zsh behandelt sie im Terminal als Argumente).
+
 ```bash
-brew install uv                         # falls noch nicht vorhanden
-uv tool install --upgrade mflux         # installiert mflux-generate
-cp .env.example .env.local              # enthält PROVIDER=local
+brew install uv
+uv tool install --upgrade mflux
+cp .env.example .env.local
 npm run dev
 ```
+
+**Wichtig: FLUX.1-schnell ist bei Hugging Face zugangsbeschränkt.** Ohne Anmeldung bricht der Download mit `401 Unauthorized` / `GatedRepoError` ab. Einmalig, kostenlos:
+
+1. Konto auf huggingface.co anlegen und auf https://huggingface.co/black-forest-labs/FLUX.1-schnell die Lizenz bestätigen.
+2. Unter https://huggingface.co/settings/tokens einen Token vom Typ **Read** erstellen.
+3. Den Token als `HF_TOKEN=...` in `.env.local` eintragen (nie committen, nie in Chats posten). Für den Erst-Download im Terminal: `read -s HF_TOKEN`, Token einfügen, Enter, dann `export HF_TOKEN`.
 
 - **Erster Lauf:** mflux lädt das Flux-schnell-Modell herunter (einmalig, einige zehn GB Speicherplatz). Das kann länger als 10 Minuten dauern. Teste es vorher einmal direkt im Terminal:
   `mflux-generate --model schnell --prompt "a red fox in snow" --steps 4 --width 512 --height 512 --quantize 4 --output test.png`
