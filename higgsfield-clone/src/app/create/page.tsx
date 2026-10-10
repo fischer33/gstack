@@ -118,6 +118,7 @@ function CreateForm() {
         {busy && (
           <div className="text-center text-muted">
             <Loader2 className="mx-auto mb-2 animate-spin" /> Generiere…
+            <p className="mt-1 text-xs">Lokal kann das 30 bis 120 Sekunden dauern, beim ersten Mal länger.</p>
           </div>
         )}
         {!busy && result && (

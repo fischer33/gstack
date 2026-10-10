@@ -1,4 +1,5 @@
 import { ASPECT_SIZE, type Aspect, type MediaType } from "../types";
+import { localProvider } from "./local";
 import { replicateProvider } from "./replicate";
 
 export interface GenerateRequest {
@@ -38,11 +39,15 @@ export const mockProvider: Provider = {
   },
 };
 
-// Bilder gehen an Replicate, sobald REPLICATE_API_TOKEN gesetzt ist (PROVIDER=mock erzwingt den Mock).
-// Videos laufen weiterhin über den Mock.
+// PROVIDER=local     -> Bilder lokal per mflux (kostenlos, nichts verlässt den Rechner)
+// PROVIDER=replicate -> Bilder über Replicate (kostenpflichtig, braucht REPLICATE_API_TOKEN)
+// PROVIDER=mock      -> Platzhalter
+// Ohne PROVIDER: Replicate, falls ein Token gesetzt ist, sonst Mock. Videos laufen immer über den Mock.
 export function getProvider(type: MediaType): Provider {
-  if (type === "image" && process.env.REPLICATE_API_TOKEN && process.env.PROVIDER !== "mock") {
-    return replicateProvider;
-  }
+  if (type !== "image") return mockProvider;
+  const choice = process.env.PROVIDER;
+  if (choice === "local") return localProvider;
+  if (choice === "mock") return mockProvider;
+  if (process.env.REPLICATE_API_TOKEN) return replicateProvider;
   return mockProvider;
 }
