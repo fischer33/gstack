@@ -9,7 +9,7 @@ import { useAppStore } from "@/store/useAppStore";
 
 function CreateForm() {
   const params = useSearchParams();
-  const { credits, spend } = useAppStore();
+  const { credits, spend, refund } = useAppStore();
   const [type, setType] = useState<MediaType>(params.get("type") === "video" ? "video" : "image");
   const [prompt, setPrompt] = useState(params.get("prompt") ?? "");
   const [model, setModel] = useState("");
@@ -38,6 +38,7 @@ function CreateForm() {
       if (!res.ok) throw new Error(data.error ?? "Fehler");
       setResult(data);
     } catch (e) {
+      refund(cost);
       setError((e as Error).message);
     } finally {
       setBusy(false);

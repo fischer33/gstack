@@ -1,4 +1,5 @@
 import { ASPECT_SIZE, type Aspect, type MediaType } from "../types";
+import { replicateProvider } from "./replicate";
 
 export interface GenerateRequest {
   type: MediaType;
@@ -11,6 +12,7 @@ export interface GenerateRequest {
 export interface GenerateResult {
   id: string;
   url: string;
+  model?: string; // tatsächlich genutztes Modell (überschreibt die Anfrage)
 }
 
 // Provider-Schnittstelle: Hier kann später eine echte Bild-/Video-API angebunden werden
@@ -36,7 +38,11 @@ export const mockProvider: Provider = {
   },
 };
 
-export function getProvider(): Provider {
-  // Erweiterungspunkt: process.env.PROVIDER auswerten und echten Provider zurückgeben.
+// Bilder gehen an Replicate, sobald REPLICATE_API_TOKEN gesetzt ist (PROVIDER=mock erzwingt den Mock).
+// Videos laufen weiterhin über den Mock.
+export function getProvider(type: MediaType): Provider {
+  if (type === "image" && process.env.REPLICATE_API_TOKEN && process.env.PROVIDER !== "mock") {
+    return replicateProvider;
+  }
   return mockProvider;
 }

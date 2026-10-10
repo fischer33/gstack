@@ -24,7 +24,9 @@ async function generate(args) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...args, source: "claude" }),
   });
-  return asText({ ...item, absoluteUrl: APP_URL + item.url, hinweis: "Mock-Provider: Platzhalter-Medien" });
+  const out = { ...item, absoluteUrl: APP_URL + item.url };
+  if (item.provider === "mock") out.hinweis = "Mock-Provider: Platzhalter-Medien, kein echtes KI-Bild";
+  return asText(out);
 }
 
 const server = new McpServer({ name: "higgsfield-clone", version: "0.1.0" });

@@ -9,6 +9,7 @@ interface AppState {
   toggleTheme: () => void;
   toggleLike: (id: string) => void;
   spend: (n: number) => boolean;
+  refund: (n: number) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -25,6 +26,7 @@ export const useAppStore = create<AppState>()(
         set({ credits: get().credits - n });
         return true;
       },
+      refund: (n) => set({ credits: get().credits + n }),
     }),
     { name: "hf-clone" },
   ),

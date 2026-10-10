@@ -19,8 +19,19 @@ Die App hat eine HTTP-API (`POST /api/generate`, `GET /api/library`) und einen M
 2. In diesem Ordner Claude Code starten, die mitgelieferte `.mcp.json` registriert den Server. Alternativ: `claude mcp add higgsfield-clone -- node /absoluter/pfad/mcp/server.mjs`.
 3. Claude bitten: „Erzeuge ein Bild von …“ oder „Mach ein 5-Sekunden-Video von …“.
 
-## Wichtig: Mock-Provider
+## Echte Bilder mit Replicate
 
-Die Generierung ist simuliert (`src/lib/providers/index.ts`): Es entstehen Farbverlauf-Platzhalter, Videos sind animierte SVGs. Für echte Medien muss dort ein Provider mit einer echten Bild-/Video-API ergänzt werden (API-Key nur serverseitig in `.env.local`).
+Bilder werden über [Replicate](https://replicate.com) erzeugt (Standard: `black-forest-labs/flux-schnell`), sobald ein Token gesetzt ist:
+
+```bash
+cp .env.example .env.local   # dann REPLICATE_API_TOKEN eintragen
+npm run dev                  # Server nach Änderung an .env.local neu starten
+```
+
+- Replicate rechnet pro Bild ab. Eine Bremse (`REPLICATE_MAX_PER_HOUR`, Standard 30) begrenzt die Kosten, auch wenn Claude Bilder erzeugt.
+- Ergebnisse werden lokal in `data/media/` gespeichert, weil Replicate-Links ablaufen.
+- Ohne Token (oder mit `PROVIDER=mock`) entstehen Farbverlauf-Platzhalter.
+- **Videos laufen weiterhin über den Mock** (animierte SVG-Platzhalter).
+- 4:3 und 3:4 werden für flux-schnell auf 5:4 und 4:5 abgebildet.
 
 Die Library liegt lokal in `data/library.json`. Die API hat keine Authentifizierung und ist nur für lokale Entwicklung gedacht.

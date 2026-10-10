@@ -4,3 +4,4 @@ next-env.d.ts
 data/library.json
 .env*.local
 *.tsbuildinfo
+data/media

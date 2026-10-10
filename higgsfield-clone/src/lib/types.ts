@@ -9,6 +9,7 @@ export interface MediaItem {
   aspect: Aspect;
   duration?: number; // Sekunden, nur Video
   url: string;
+  provider?: string; // "mock" | "replicate"
   source: "ui" | "claude";
   createdAt: string;
 }

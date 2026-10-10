@@ -18,15 +18,24 @@ export async function POST(req: Request) {
   const model = typeof body?.model === "string" ? body.model : type === "video" ? "Kling Mock" : "Soul Mock";
   const duration = type === "video" ? ([5, 10].includes(body?.duration) ? body.duration : 5) : undefined;
 
-  const { id, url } = await getProvider().generate({ type, prompt, model, aspect, duration });
+  const provider = getProvider(type);
+  let result;
+  try {
+    result = await provider.generate({ type, prompt, model, aspect, duration });
+  } catch (err) {
+    console.error(`[generate] ${provider.name}:`, (err as Error).message);
+    return NextResponse.json({ error: `Generierung fehlgeschlagen (${provider.name}): ${(err as Error).message}` }, { status: 502 });
+  }
+
   const item: MediaItem = {
-    id,
+    id: result.id,
     type,
     prompt,
-    model,
+    model: result.model ?? model,
     aspect,
     duration,
-    url,
+    url: result.url,
+    provider: provider.name,
     source: body?.source === "claude" ? "claude" : "ui",
     createdAt: new Date().toISOString(),
   };
