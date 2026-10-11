@@ -2,12 +2,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { Compass, Sparkles, Wand2, FolderOpen, User, CreditCard, Sun, Moon, Coins } from "lucide-react";
+import { Compass, Sparkles, Clapperboard, Wand2, FolderOpen, User, CreditCard, Sun, Moon, Coins } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 
 const NAV = [
   { href: "/", label: "Explore", icon: Compass },
   { href: "/create", label: "Create", icon: Sparkles },
+  { href: "/ads", label: "Ad-Maker", icon: Clapperboard },
   { href: "/effects", label: "Effects", icon: Wand2 },
   { href: "/library", label: "Library", icon: FolderOpen },
   { href: "/profile", label: "Profil", icon: User },

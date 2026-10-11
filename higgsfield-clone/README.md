@@ -45,6 +45,14 @@ npm run dev
 - Ergebnisse liegen in `data/media/`.
 - **Videos bleiben Platzhalter** (animierte SVGs). Lokale Videomodelle sind auf 16 GB zu langsam und instabil.
 
+## Eigene Bilder hochladen und Werbefilme erstellen
+
+- **Upload:** In der Library auf „Bilder hochladen“ klicken oder Dateien ins Fenster ziehen (PNG, JPG, WebP, max. 15 MB). Der Dateityp wird am Inhalt geprüft.
+- **Ad-Maker** (`/ads`): Bilder aus der Library auswählen, anordnen, pro Folie Überschrift und Unterzeile setzen und einen Call-to-Action für die letzte Folie. Ergebnis ist ein MP4 in 9:16, 1:1 oder 16:9 mit langsamem Zoom und Überblendung (2 bis 6 Sekunden pro Folie, bis zu 10 Folien).
+- Läuft komplett lokal und kostenlos über ein mitgeliefertes ffmpeg (`@ffmpeg-installer/ffmpeg`). Eigenes ffmpeg per `FFMPEG_PATH`.
+- **Das ist eine Bilder-Show, kein KI-Video.** Die Videos haben keinen Ton; Musik fügst du in der Ziel-App (Instagram, TikTok, CapCut) hinzu.
+- Platzhalter-Bilder (Mock) lassen sich nicht verwenden, nur echte Dateien.
+
 ## Alternative ohne Download: Hugging Face Inference Providers
 
 Mit `PROVIDER=huggingface` läuft die Berechnung beim Anbieter (Standard `nscale` mit `FLUX.1-schnell`), es ist kein Modell-Download auf dem Mac nötig. Der Token kommt aus `HF_TOKEN` in `.env.local` oder aus `~/.cache/huggingface/token`.
