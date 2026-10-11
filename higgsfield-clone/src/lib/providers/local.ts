@@ -1,7 +1,7 @@
 import { execFile } from "child_process";
 import { promises as fs } from "fs";
 import path from "path";
-import { MEDIA_DIR } from "./replicate";
+import { MEDIA_DIR } from "../media-store";
 import type { Aspect } from "../types";
 import type { GenerateRequest, GenerateResult, Provider } from "./index";
 

@@ -45,6 +45,15 @@ npm run dev
 - Ergebnisse liegen in `data/media/`.
 - **Videos bleiben Platzhalter** (animierte SVGs). Lokale Videomodelle sind auf 16 GB zu langsam und instabil.
 
+## Alternative ohne Download: Hugging Face Inference Providers
+
+Mit `PROVIDER=huggingface` läuft die Berechnung beim Anbieter (Standard `nscale` mit `FLUX.1-schnell`), es ist kein Modell-Download auf dem Mac nötig. Der Token kommt aus `HF_TOKEN` in `.env.local` oder aus `~/.cache/huggingface/token`.
+
+- **Das ist nicht automatisch gratis:** Hugging Face bietet ein kleines Guthaben, danach rechnet der Anbieter ab. Aktuellen Stand unter https://huggingface.co/settings/billing prüfen.
+- Kostenbremse `HF_MAX_PER_HOUR` (Standard 30).
+- Das Seitenverhältnis wird nicht gesendet (der Anbieter bestimmt die Größe), optional `HF_IMAGE_SIZE`.
+- Getestet nur gegen einen Stub, nicht gegen den echten Dienst.
+
 ## Optional, kostenpflichtig: Replicate
 
 Mit `PROVIDER=replicate` und `REPLICATE_API_TOKEN` in `.env.local` laufen Bilder über [Replicate](https://replicate.com) (Standard `black-forest-labs/flux-schnell`, nur Bilder). Eine Bremse (`REPLICATE_MAX_PER_HOUR`, Standard 30) begrenzt die Kosten. 4:3 und 3:4 werden auf 5:4 und 4:5 abgebildet.

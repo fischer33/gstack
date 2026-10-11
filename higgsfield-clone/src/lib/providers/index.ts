@@ -1,4 +1,5 @@
 import { ASPECT_SIZE, type Aspect, type MediaType } from "../types";
+import { huggingfaceProvider } from "./huggingface";
 import { localProvider } from "./local";
 import { replicateProvider } from "./replicate";
 
@@ -40,6 +41,7 @@ export const mockProvider: Provider = {
 };
 
 // PROVIDER=local     -> Bilder lokal per mflux (kostenlos, nichts verlässt den Rechner)
+// PROVIDER=huggingface -> Bilder über Hugging Face Inference Providers (Standard nscale, braucht HF-Token)
 // PROVIDER=replicate -> Bilder über Replicate (kostenpflichtig, braucht REPLICATE_API_TOKEN)
 // PROVIDER=mock      -> Platzhalter
 // Ohne PROVIDER: Replicate, falls ein Token gesetzt ist, sonst Mock. Videos laufen immer über den Mock.
@@ -47,6 +49,7 @@ export function getProvider(type: MediaType): Provider {
   if (type !== "image") return mockProvider;
   const choice = process.env.PROVIDER;
   if (choice === "local") return localProvider;
+  if (choice === "huggingface") return huggingfaceProvider;
   if (choice === "mock") return mockProvider;
   if (process.env.REPLICATE_API_TOKEN) return replicateProvider;
   return mockProvider;

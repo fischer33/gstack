@@ -1,9 +1,7 @@
-import { promises as fs } from "fs";
-import path from "path";
 import type { Aspect } from "../types";
+import { saveImage } from "../media-store";
+import { createLimiter } from "./rate-limit";
 import type { GenerateRequest, GenerateResult, Provider } from "./index";
-
-export const MEDIA_DIR = path.join(process.cwd(), "data", "media");
 
 const MODEL_RE = /^[\w.-]+\/[\w.-]+$/;
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -12,16 +10,7 @@ const POLL_TIMEOUT_MS = 120_000;
 // flux-schnell kennt kein 4:3 / 3:4, daher die nächstliegenden Formate.
 const ASPECT_MAP: Record<Aspect, string> = { "1:1": "1:1", "16:9": "16:9", "9:16": "9:16", "4:3": "5:4", "3:4": "4:5" };
 
-const recent: number[] = [];
-function checkRateLimit() {
-  const max = Number(process.env.REPLICATE_MAX_PER_HOUR) || 30;
-  const cutoff = Date.now() - 3_600_000;
-  while (recent.length && recent[0] < cutoff) recent.shift();
-  if (recent.length >= max) {
-    throw new Error(`Limit von ${max} Bildern pro Stunde erreicht (REPLICATE_MAX_PER_HOUR)`);
-  }
-  recent.push(Date.now());
-}
+const checkRateLimit = createLimiter("REPLICATE_MAX_PER_HOUR", 30);
 
 const base = () => (process.env.REPLICATE_API_BASE || "https://api.replicate.com").replace(/\/$/, "");
 
@@ -79,9 +68,7 @@ export const replicateProvider: Provider = {
     const buf = Buffer.from(await imgRes.arrayBuffer());
     if (buf.length > MAX_BYTES) throw new Error("Bild zu groß");
 
-    const id = crypto.randomUUID();
-    await fs.mkdir(MEDIA_DIR, { recursive: true });
-    await fs.writeFile(path.join(MEDIA_DIR, `${id}.png`), buf);
+    const id = await saveImage(buf);
     return { id, url: `/api/media/${id}`, model };
   },
 };
