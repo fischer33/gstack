@@ -6,11 +6,13 @@ import { MEDIA_DIR, videoPath } from "./media-store";
 
 export const AD_FORMATS = { "9:16": [720, 1280], "1:1": [1080, 1080], "16:9": [1280, 720] } as const;
 export type AdFormat = keyof typeof AD_FORMATS;
-// cover: Bild füllt das Format (Ränder werden abgeschnitten). contain: ganzes Bild sichtbar, Rest = unscharfer Hintergrund.
+// cover: Bild füllt das Format (Ränder werden abgeschnitten). contain: ganzes Bild sichtbar, etwas höher platziert,
+// der Rest hat die Farbe der Bildecke (Platz für den Text darunter).
 export type AdFit = "cover" | "contain";
 
 export interface AdSlide {
   imageFile: string; // Pfad zu einem Bild in MEDIA_DIR
+  fit?: AdFit; // überschreibt die Einstellung des ganzen Films
   overlayPng: Buffer; // transparentes PNG in voller Videogröße mit Text
 }
 
@@ -33,7 +35,7 @@ const enqueue = <T>(job: () => Promise<T>): Promise<T> => {
 
 // Baut den Filtergraphen. Bewusst ohne `xfade` (fehlt in älteren ffmpeg-Versionen): Jede Folie
 // bekommt einen Alpha-Einblendeffekt und wird zeitversetzt über die vorherige gelegt = echte Überblendung.
-export function buildFilter(n: number, w: number, h: number, secs: number, fade: number, fit: AdFit = "cover"): string {
+export function buildFilter(n: number, w: number, h: number, secs: number, fade: number, fit: AdFit | AdFit[] = "cover"): string {
   const frames = Math.round(secs * FPS);
   const step = secs - fade;
   const total = n * secs - (n - 1) * fade;
@@ -44,13 +46,13 @@ export function buildFilter(n: number, w: number, h: number, secs: number, fade:
     // Zoom abwechselnd hinein und heraus; Bild vorher 2x vergrößern, damit der Zoom nicht ruckelt.
     const z = i % 2 === 0 ? `1+0.14*on/${frames}` : `1.14-0.14*on/${frames}`;
     const zoom = `zoompan=z='${z}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=${w}x${h}:fps=${FPS},setsar=1`;
-    if (fit === "contain") {
-      const [qw, qh] = [Math.round(w / 4), Math.round(h / 4)];
+    if ((Array.isArray(fit) ? fit[i] : fit) === "contain") {
       parts.push(
         `[${img}:v]split[bs${i}][fs${i}]`,
-        `[bs${i}]scale=${qw}:${qh}:force_original_aspect_ratio=increase,crop=${qw}:${qh},boxblur=6:2,scale=${w * 2}:${h * 2}[bb${i}]`,
+        // Hintergrund = Farbe der oberen linken Bildecke (bei Studiofotos der Studiohintergrund, meist weiß)
+        `[bs${i}]crop=16:16:0:0,scale=${w * 2}:${h * 2}[bb${i}]`,
         `[fs${i}]scale=${w * 2}:${h * 2}:force_original_aspect_ratio=decrease[ff${i}]`,
-        `[bb${i}][ff${i}]overlay=(W-w)/2:(H-h)/2,${zoom}[z${i}]`,
+        `[bb${i}][ff${i}]overlay=(W-w)/2:(H-h)*0.22,${zoom}[z${i}]`,
       );
     } else {
       parts.push(`[${img}:v]scale=${w * 2}:${h * 2}:force_original_aspect_ratio=increase,crop=${w * 2}:${h * 2},${zoom}[z${i}]`);
@@ -90,7 +92,7 @@ export async function renderAd(opts: {
         args.push("-i", slides[i].imageFile); // ein einzelnes Bild, zoompan erzeugt die Bilder
         args.push("-loop", "1", "-framerate", String(FPS), "-t", String(secs), "-i", overlay);
       }
-      args.push("-filter_complex", buildFilter(slides.length, w, h, secs, fade, opts.fit), "-map", "[out]");
+      args.push("-filter_complex", buildFilter(slides.length, w, h, secs, fade, slides.map((sl) => sl.fit ?? opts.fit ?? "cover")), "-map", "[out]");
       args.push("-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", out);
 
       await new Promise<void>((resolve, reject) => {

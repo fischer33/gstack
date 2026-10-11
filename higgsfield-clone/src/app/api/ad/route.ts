@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     if (!overlayPng || overlayPng.length > MAX_OVERLAY_BYTES || !overlayPng.subarray(0, 8).equals(PNG_MAGIC)) {
       return bad(`Folie ${i + 1}: Text-Ebene ungültig`);
     }
-    slides.push({ imageFile: media.file, overlayPng });
+    slides.push({ imageFile: media.file, overlayPng, fit: s.fit === "contain" || s.fit === "cover" ? s.fit : undefined });
   }
 
   let result;

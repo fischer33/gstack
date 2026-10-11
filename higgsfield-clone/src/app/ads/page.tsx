@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, Clapperboard, Loader2, Plus, Trash2 } from "lucide-react";
-import { drawOverlay } from "@/lib/overlay-canvas";
+import { HEX_COLOR, drawOverlay } from "@/lib/overlay-canvas";
 import type { MediaItem } from "@/lib/types";
 
 const FORMATS = { "9:16": [720, 1280], "1:1": [1080, 1080], "16:9": [1280, 720] } as const;
@@ -14,6 +14,8 @@ interface Slide {
   url: string;
   headline: string;
   sub: string;
+  fit?: "cover" | "contain"; // leer = Einstellung des ganzen Films
+  tone?: "light" | "dark"; // Textfarbe: light = weiß (dunkle Bilder), dark = dunkel (helle Bilder)
 }
 
 // Nur echte Bilder: Platzhalter (Mock) haben keine Datei und lassen sich nicht rendern.
@@ -25,6 +27,8 @@ export default function AdsPage() {
   const [secs, setSecs] = useState(3);
   const [fade, setFade] = useState(0.5);
   const [fit, setFit] = useState<"cover" | "contain">("cover");
+  const [textStyle, setTextStyle] = useState<"standard" | "brand">("standard");
+  const [ctaColor, setCtaColor] = useState("#ffffff");
   const [showScript, setShowScript] = useState(false);
   const [scriptText, setScriptText] = useState("");
   const [scriptMsg, setScriptMsg] = useState("");
@@ -40,6 +44,24 @@ export default function AdsPage() {
   const [w, h] = FORMATS[format];
   const current = slides[sel];
   const isLast = sel === slides.length - 1;
+  const slideFit = current?.fit ?? fit;
+  const [cornerColor, setCornerColor] = useState("#000");
+
+  // Farbe der oberen linken Bildecke für die Vorschau im Modus "einpassen" (wie im fertigen Film)
+  useEffect(() => {
+    if (!current || slideFit !== "contain") return;
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = c.height = 1;
+      const ctx = c.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, 16, 16, 0, 0, 1, 1);
+      const d = ctx.getImageData(0, 0, 1, 1).data;
+      setCornerColor(`rgb(${d[0]},${d[1]},${d[2]})`);
+    };
+    img.src = current.url;
+  }, [current?.url, slideFit]); // eslint-disable-line react-hooks/exhaustive-deps
   const total = slides.length ? slides.length * secs - (slides.length - 1) * fade : 0;
 
   useEffect(() => {
@@ -50,8 +72,8 @@ export default function AdsPage() {
 
   useEffect(() => {
     const c = previewRef.current;
-    if (c && current) drawOverlay(c, { headline: current.headline, sub: current.sub, cta: isLast ? cta : undefined });
-  }, [current, isLast, cta, format, w, h]);
+    if (c && current) drawOverlay(c, { headline: current.headline, sub: current.sub, cta: isLast ? cta : undefined, tone: current.tone, style: textStyle, ctaColor });
+  }, [current, isLast, cta, textStyle, ctaColor, format, w, h]);
 
   const update = (i: number, patch: Partial<Slide>) => setSlides((s) => s.map((x, k) => (k === i ? { ...x, ...patch } : x)));
   const move = (i: number, d: number) => {
@@ -96,7 +118,7 @@ export default function AdsPage() {
         const key = norm(String(sl.match ?? ""));
         const hits = images.filter((m) => key && norm(m.prompt).includes(key)).sort((a, b) => a.prompt.length - b.prompt.length);
         if (!hits.length) { missing.push(String(sl.match)); continue; }
-        next.push({ mediaId: hits[0].id, url: hits[0].url, headline: String(sl.headline ?? "").slice(0, 80), sub: String(sl.sub ?? "").slice(0, 140) });
+        next.push({ mediaId: hits[0].id, url: hits[0].url, headline: String(sl.headline ?? "").slice(0, 80), sub: String(sl.sub ?? "").slice(0, 140), fit: sl.fit === "contain" || sl.fit === "cover" ? sl.fit : undefined, tone: sl.tone === "dark" || sl.tone === "light" ? sl.tone : undefined });
       }
       if (missing.length) throw new Error(`Diese Bilder fehlen in der Library (zuerst importieren): ${missing.join(", ")}`);
       setFormat(d.format);
@@ -104,6 +126,8 @@ export default function AdsPage() {
       setFade(tr);
       setFit(d.fit === "contain" ? "contain" : "cover");
       if (typeof d.cta === "string") setCta(d.cta.slice(0, 40));
+      if (d.style === "brand" || d.style === "standard") setTextStyle(d.style);
+      if (typeof d.ctaColor === "string" && HEX_COLOR.test(d.ctaColor)) setCtaColor(d.ctaColor);
       if (typeof d.title === "string") setTitle(d.title.slice(0, 100));
       setSlides(next);
       setSel(0);
@@ -123,8 +147,8 @@ export default function AdsPage() {
         const c = document.createElement("canvas");
         c.width = w;
         c.height = h;
-        drawOverlay(c, { headline: s.headline, sub: s.sub, cta: i === slides.length - 1 ? cta : undefined });
-        return { mediaId: s.mediaId, overlay: c.toDataURL("image/png") };
+        drawOverlay(c, { headline: s.headline, sub: s.sub, cta: i === slides.length - 1 ? cta : undefined, tone: s.tone, style: textStyle, ctaColor });
+        return { mediaId: s.mediaId, overlay: c.toDataURL("image/png"), fit: s.fit };
       });
       const res = await fetch("/api/ad", {
         method: "POST",
@@ -200,6 +224,17 @@ export default function AdsPage() {
                       className="w-full rounded-md border border-line bg-bg px-2 py-1 text-sm outline-none focus:border-accent" />
                     <input value={s.sub} onChange={(e) => update(i, { sub: e.target.value })} maxLength={140} placeholder="Unterzeile (optional)" aria-label={`Unterzeile Folie ${i + 1}`}
                       className="w-full rounded-md border border-line bg-bg px-2 py-1 text-xs outline-none focus:border-accent" />
+                    <select value={s.fit ?? ""} onChange={(e) => update(i, { fit: (e.target.value || undefined) as Slide["fit"] })} aria-label={`Bildausschnitt Folie ${i + 1}`}
+                      className="rounded-md border border-line bg-bg px-1 py-0.5 text-xs text-muted">
+                      <option value="">Bild: wie im ganzen Film</option>
+                      <option value="cover">Bild: füllen</option>
+                      <option value="contain">Bild: einpassen</option>
+                    </select>
+                    <select value={s.tone ?? ""} onChange={(e) => update(i, { tone: (e.target.value || undefined) as Slide["tone"] })} aria-label={`Textfarbe Folie ${i + 1}`}
+                      className="ml-1 rounded-md border border-line bg-bg px-1 py-0.5 text-xs text-muted">
+                      <option value="">Text: weiß</option>
+                      <option value="dark">Text: dunkel (helle Bilder)</option>
+                    </select>
                   </div>
                   <div className="flex flex-col justify-between">
                     <button onClick={(e) => { e.stopPropagation(); move(i, -1); }} aria-label="Nach oben" disabled={i === 0} className="disabled:opacity-30"><ArrowUp size={14} /></button>
@@ -233,6 +268,22 @@ export default function AdsPage() {
             </div>
           </div>
           <div>
+            <span className="mb-1 block text-sm text-muted">Textstil</span>
+            <div className="flex gap-2">
+              <button onClick={() => setTextStyle("standard")} className={`rounded-lg px-3 py-1 text-sm ${textStyle === "standard" ? "bg-accent text-accent-fg" : "bg-surface text-muted"}`}>Standard</button>
+              <button onClick={() => setTextStyle("brand")} className={`rounded-lg px-3 py-1 text-sm ${textStyle === "brand" ? "bg-accent text-accent-fg" : "bg-surface text-muted"}`}>Marke (GROSS, weit)</button>
+            </div>
+          </div>
+          <div>
+            <span className="mb-1 block text-sm text-muted">Farbe des Call-to-Action-Knopfs</span>
+            <div className="flex items-center gap-2">
+              {["#ffffff", "#EDEAE3", "#d1fe17"].map((c) => (
+                <button key={c} onClick={() => setCtaColor(c)} aria-label={`Farbe ${c}`} style={{ background: c }} className={`h-7 w-7 rounded-full border ${ctaColor.toLowerCase() === c.toLowerCase() ? "border-accent ring-2 ring-accent" : "border-line"}`} />
+              ))}
+              <span className="text-xs text-muted">{ctaColor}</span>
+            </div>
+          </div>
+          <div>
             <span className="mb-1 block text-sm text-muted">Bild im Format</span>
             <div className="flex gap-2">
               <button onClick={() => setFit("cover")} className={`rounded-lg px-3 py-1 text-sm ${fit === "cover" ? "bg-accent text-accent-fg" : "bg-surface text-muted"}`}>Füllen</button>
@@ -251,13 +302,12 @@ export default function AdsPage() {
 
           <div>
             <span className="mb-1 block text-sm text-muted">Vorschau{current ? ` (Folie ${sel + 1})` : ""}</span>
-            <div className="relative mx-auto max-h-[50vh] overflow-hidden rounded-xl bg-surface" style={{ aspectRatio: `${w}/${h}`, maxWidth: format === "9:16" ? 260 : "100%" }}>
+            <div className="relative mx-auto max-h-[50vh] overflow-hidden rounded-xl bg-surface" style={{ aspectRatio: `${w}/${h}`, maxWidth: format === "9:16" ? 260 : "100%", ...(current && slideFit === "contain" ? { background: cornerColor } : {}) }}>
               {current ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {fit === "contain" && /* eslint-disable-next-line @next/next/no-img-element */ <img src={current.url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl" />}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={current.url} alt="" className={`absolute inset-0 h-full w-full ${fit === "contain" ? "object-contain" : "object-cover"}`} />
+                  <img src={current.url} alt="" className={`absolute inset-0 h-full w-full ${slideFit === "contain" ? "object-contain" : "object-cover"}`} style={slideFit === "contain" ? { objectPosition: "50% 22%" } : undefined} />
                   <canvas ref={previewRef} width={w} height={h} className="absolute inset-0 h-full w-full" />
                 </>
               ) : (

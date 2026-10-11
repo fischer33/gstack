@@ -55,7 +55,8 @@ npm run dev
   {"format":"9:16","fit":"contain","secondsPerSlide":3,"transition":0.5,"cta":"Jetzt ansehen",
    "slides":[{"match":"hoodie-black-front","headline":"Bald.","sub":"Etwas Neues kommt."}]}
   ```
-- **Bild im Format:** „Füllen“ schneidet Ränder ab, „Einpassen“ zeigt das ganze Bild und füllt den Rest unscharf auf (sinnvoll für quadratische Produktbilder im 9:16-Reel).
+- **Markenlook:** Textstil „Marke“ (Großbuchstaben, weiter Buchstabenabstand), Textfarbe je Folie (weiß oder dunkel für helle Bilder), Farbe des Call-to-Action-Knopfs. Im Drehbuch: `"style":"brand"`, `"ctaColor":"#EDEAE3"`, je Folie `"tone":"dark"` und `"fit":"cover"`.
+- **Bild im Format:** „Füllen“ schneidet Ränder ab, „Einpassen“ zeigt das ganze Bild (etwas höher, Platz für den Text darunter) und füllt den Rest mit der Farbe der Bildecke auf (sinnvoll für quadratische Produktbilder im 9:16-Reel).
 - Läuft komplett lokal und kostenlos über ein mitgeliefertes ffmpeg (`@ffmpeg-installer/ffmpeg`). Eigenes ffmpeg per `FFMPEG_PATH`.
 - **Das ist eine Bilder-Show, kein KI-Video.** Die Videos haben keinen Ton; Musik fügst du in der Ziel-App (Instagram, TikTok, CapCut) hinzu.
 - Platzhalter-Bilder (Mock) lassen sich nicht verwenden, nur echte Dateien.
