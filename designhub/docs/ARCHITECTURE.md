@@ -65,7 +65,7 @@ Schemaänderungen erhöhen `DOCUMENT_VERSION` und bekommen eine Migrationsfunkti
 - **PNG/JPG**: `stage.toDataURL({ pixelRatio, mimeType, quality })`, Skalierung 1×/2×/3× und Qualität wählbar.
 - **PDF**: jsPDF, eine PDF-Seite pro Design-Seite, Raster-Bild in gewählter Auflösung.
 - **SVG**: Konva kann kein SVG. Plan: eigener Serializer `DesignDocument → SVG-String` (Formen, Text, Bilder als `<image>`, Verlauf, Schatten). Er ist reine Funktion und damit gut testbar.
-- Vorgabe nennt `html-to-image`. Das rendert DOM, nicht das Konva-Canvas, und würde Ergebnis und Vorschau auseinanderlaufen lassen. Siehe offene Frage 2.
+- Vorgabe nennt `html-to-image`. Das rendert DOM, nicht das Konva-Canvas, und würde Ergebnis und Vorschau auseinanderlaufen lassen. Entscheidung: Abschnitt 9.
 
 ## 6. Backend
 
@@ -86,9 +86,11 @@ REST unter `/api`: `auth/*`, `designs` (CRUD, Ordner, Papierkorb, Duplizieren), 
 
 - **Performance bei 100+ Objekten**: Messung per Benchmark-Szene in Etappe (c), nicht erst am Ende.
 - **Text-Rendering**: Konva-Text und SVG/PDF-Export müssen identisch umbrechen; Zeilenumbruch einmal zentral berechnen.
-- **Hintergrund entfernen**: braucht externen Anbieter und Key (offene Frage 3).
+- **Hintergrund entfernen**: braucht einen remove.bg-Key (Abschnitt 9).
 - **Google OAuth/S3**: laufen lokal nur mit eigenen Zugangsdaten bzw. MinIO; Etappe (a) funktioniert vorab mit E-Mail-Login.
 
-## 9. Offene Fragen
+## 9. Entscheidungen zu Abweichungen von der Vorgabe
 
-Siehe Abschluss der Etappe-1-Nachricht; Antworten werden hier nachgetragen.
+1. **SVG-Export**: eigener Serializer statt `html-to-image` (entschieden).
+2. **Ablageort**: eigenes Repo. Bis es existiert, liegt der Code unter `designhub/` auf dem Branch `claude/dreamy-hawking-m38lph`; Umzug folgt, sobald das leere Repo bereitsteht.
+3. **Hintergrund entfernen**: remove.bg, Aufruf nur serverseitig; `BG_REMOVAL_API_KEY` in `.env` (entschieden).
