@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Designly – Canva-Klon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;700&family=Pacifico&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Poppins:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--brand:#7d2ae8;--brand2:#00c4cc;--bg:#f1f2f6;--panel:#fff;--line:#e3e5ec;--text:#1e2030;--muted:#6b7085;--hs:10px}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.4 Poppins,system-ui,sans-serif;color:var(--text);background:var(--bg);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{height:56px;background:linear-gradient(90deg,var(--brand),var(--brand2));display:flex;align-items:center;gap:8px;padding:0 12px;color:#fff;flex-shrink:0}
+header .logo{font-weight:700;font-size:20px;margin-right:8px;letter-spacing:-.5px}
+header input,header select{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:8px;padding:7px 10px;font:inherit;outline:0}
+header select option{color:#000}
+header input::placeholder{color:#eee}
+header .sp{flex:1}
+button{font:inherit;cursor:pointer;border:0;border-radius:8px;padding:7px 12px;background:rgba(255,255,255,.18);color:#fff}
+button:hover{background:rgba(255,255,255,.3)}
+button.primary{background:#fff;color:var(--brand);font-weight:700}
+main{flex:1;display:flex;min-height:0}
+aside{background:var(--panel);overflow-y:auto;flex-shrink:0}
+#tools{width:290px;border-right:1px solid var(--line);display:flex;flex-direction:column}
+#props{width:260px;border-left:1px solid var(--line);padding:14px}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;background:none;color:var(--muted);border-radius:0;padding:12px 4px;border-bottom:3px solid transparent}
+.tabs button.on{color:var(--brand);border-bottom-color:var(--brand);font-weight:700}
+.tabs button:hover{background:#f6f0ff}
+.pane{display:none;padding:14px;overflow-y:auto}.pane.on{display:block}
+.pane h4,#props h3{margin:14px 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.pane h4:first-child{margin-top:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tool{background:#f6f7fb;color:var(--text);border:1px solid var(--line);padding:12px 6px;text-align:center;border-radius:10px}
+.tool:hover{background:#efe6ff;border-color:var(--brand)}
+.tool svg{display:block;margin:0 auto 4px}
+.tpl{height:120px;border-radius:10px;border:1px solid var(--line);cursor:pointer;display:flex;align-items:flex-end;padding:8px;color:#fff;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+.tpl:hover{outline:2px solid var(--brand)}
+.layer{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;cursor:pointer;background:#fff}
+.layer.on{border-color:var(--brand);background:#f6f0ff}
+.layer small{color:var(--muted);margin-left:auto}
+#work{flex:1;overflow:auto;position:relative;display:flex}
+#wrap{margin:auto;padding:40px;flex-shrink:0}
+#box{position:relative;box-shadow:0 8px 30px rgba(20,20,60,.18)}
+#stage{position:absolute;left:0;top:0;transform-origin:0 0;overflow:visible;touch-action:none}
+#clip{position:absolute;inset:0;overflow:hidden}
+.el{position:absolute;user-select:none;cursor:move}
+.el.text{white-space:pre-wrap;word-break:break-word;line-height:1.2}
+.el img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;border-radius:inherit}
+#sel{position:absolute;border:calc(var(--hs)/5) solid var(--brand);pointer-events:none;display:none}
+#sel i{position:absolute;width:var(--hs);height:var(--hs);background:#fff;border:calc(var(--hs)/6) solid var(--brand);border-radius:50%;pointer-events:auto;margin:calc(var(--hs)/-2)}
+#sel i[data-h=rot]{background:var(--brand);left:50%;top:calc(var(--hs)*-3);cursor:grab}
+.gl{position:absolute;background:#ff3d8b;display:none;pointer-events:none;z-index:9}
+#props label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;color:var(--muted);font-size:13px}
+#props input[type=number],#props select,#props input[type=text]{width:110px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit}
+#props input[type=color]{width:44px;height:30px;border:1px solid var(--line);border-radius:6px;padding:2px;background:#fff}
+#props input[type=range]{width:110px}
+#props .row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+#props .row button{background:#f1f2f6;color:var(--text);padding:6px 10px;flex:1}
+#props .row button:hover{background:#e6d9ff}
+#props .row button.on{background:var(--brand);color:#fff}
+#props .danger{background:#ffe5e8;color:#c0182c}
+#zoomlbl{min-width:46px;text-align:center}
+#hint{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:#1e2030cc;color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;pointer-events:none}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">✦ Designly</span>
+  <input id="title" type="text" placeholder="Unbenanntes Design" value="Unbenanntes Design">
+  <select id="size">
+    <option value="1080x1080">Instagram Post 1080×1080</option>
+    <option value="1080x1920">Story 1080×1920</option>
+    <option value="1080x1350">Poster 1080×1350</option>
+    <option value="1920x1080">Präsentation 1920×1080</option>
+    <option value="1240x1754">A4 Dokument</option>
+    <option value="1500x500">Twitter Header 1500×500</option>
+  </select>
+  <button id="undo" title="Rückgängig (Strg+Z)">↶</button>
+  <button id="redo" title="Wiederholen (Strg+Y)">↷</button>
+  <span class="sp"></span>
+  <button id="zout">−</button><span id="zoomlbl">50%</span><button id="zin">+</button><button id="fit">Einpassen</button>
+  <button id="save">Speichern</button>
+  <button id="load">Öffnen</button>
+  <button id="export" class="primary">⬇ PNG exportieren</button>
+  <input id="file" type="file" accept="application/json" hidden>
+  <input id="img" type="file" accept="image/*" hidden>
+</header>
+<main>
+  <aside id="tools">
+    <div class="tabs">
+      <button data-tab="elements" class="on">Elemente</button>
+      <button data-tab="templates">Vorlagen</button>
+      <button data-tab="layers">Ebenen</button>
+    </div>
+    <div class="pane on" id="p-elements">
+      <h4>Text</h4>
+      <div class="grid" style="grid-template-columns:1fr">
+        <button class="tool" data-add="h1" style="font:700 22px Poppins">Überschrift hinzufügen</button>
+        <button class="tool" data-add="h2" style="font:700 16px Poppins">Unterüberschrift</button>
+        <button class="tool" data-add="body" style="font:400 13px Poppins">Fließtext hinzufügen</button>
+      </div>
+      <h4>Formen</h4>
+      <div class="grid">
+        <button class="tool" data-add="rect"><svg width="34" height="34"><rect x="3" y="5" width="28" height="24" fill="#7d2ae8"/></svg>Rechteck</button>
+        <button class="tool" data-add="circle"><svg width="34" height="34"><circle cx="17" cy="17" r="14" fill="#00c4cc"/></svg>Kreis</button>
+        <button class="tool" data-add="triangle"><svg width="34" height="34"><polygon points="17,3 31,30 3,30" fill="#ff5757"/></svg>Dreieck</button>
+        <button class="tool" data-add="star"><svg width="34" height="34"><polygon points="17,2 21,12 32,13 24,20 26,31 17,25 8,31 10,20 2,13 13,12" fill="#ffbd59"/></svg>Stern</button>
+        <button class="tool" data-add="line"><svg width="34" height="34"><rect x="2" y="15" width="30" height="4" fill="#1e2030"/></svg>Linie</button>
+      </div>
+      <h4>Bilder</h4>
+      <button class="tool" id="upload" style="width:100%">📁 Bild hochladen</button>
+      <p style="color:var(--muted);font-size:12px">Tipp: Bilder per Drag & Drop oder Strg+V einfügen.</p>
+      <h4>Hintergrund</h4>
+      <div class="grid" id="swatches"></div>
+    </div>
+    <div class="pane" id="p-templates"><div class="grid" id="tpls" style="grid-template-columns:1fr"></div></div>
+    <div class="pane" id="p-layers"><div id="layers"></div></div>
+  </aside>
+  <section id="work">
+    <div id="wrap"><div id="box"><div id="stage">
+      <div id="clip"></div>
+      <div class="gl" id="glv"></div><div class="gl" id="glh"></div>
+      <div id="sel">
+        <i data-h="nw" style="left:0;top:0;cursor:nwse-resize"></i><i data-h="n" style="left:50%;top:0;cursor:ns-resize"></i><i data-h="ne" style="left:100%;top:0;cursor:nesw-resize"></i>
+        <i data-h="w" style="left:0;top:50%;cursor:ew-resize"></i><i data-h="e" style="left:100%;top:50%;cursor:ew-resize"></i>
+        <i data-h="sw" style="left:0;top:100%;cursor:nesw-resize"></i><i data-h="s" style="left:50%;top:100%;cursor:ns-resize"></i><i data-h="se" style="left:100%;top:100%;cursor:nwse-resize"></i>
+        <i data-h="rot"></i>
+      </div>
+    </div></div></div>
+    <div id="hint">Doppelklick auf Text zum Bearbeiten · Entf löscht · Pfeiltasten verschieben</div>
+  </section>
+  <aside id="props"></aside>
+</main>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 9);
+const FONTS = ['Poppins', 'Montserrat', 'Playfair Display', 'Bebas Neue', 'Pacifico', 'Roboto Mono', 'Arial', 'Georgia'];
+const SWATCHES = ['#ffffff', '#f8f1e7', '#1e2030', '#7d2ae8', '#00c4cc', '#ff5757', '#ffbd59', '#0f172a'];
+const POLY = {
+  triangle: [[.5, 0], [1, 1], [0, 1]],
+  star: Array.from({ length: 10 }, (_, i) => {
+    const a = (-90 + i * 36) * Math.PI / 180, r = i % 2 ? .2 : .5;
+    return [.5 + r * Math.cos(a), .5 + r * Math.sin(a)];
+  }),
+};
+const DIR = { nw: [-1, -1], n: [0, -1], ne: [1, -1], w: [-1, 0], e: [1, 0], sw: [-1, 1], s: [0, 1], se: [1, 1] };
+
+let doc = { w: 1080, h: 1080, bg: '#ffffff', els: [] };
+let sel = null, zoom = .5, drag = null, editing = null, clipboard = null;
+let hist = [], hi = -1;
+const imgCache = {};
+
+const cur = () => doc.els.find(e => e.id === sel);
+
+/* ---------- Element-Fabrik ---------- */
+function mkEl(type, o = {}) {
+  const base = { id: uid(), type, x: 0, y: 0, w: 200, h: 200, rot: 0, opacity: 1 };
+  const d = {
+    rect: { fill: '#7d2ae8', stroke: '#000000', sw: 0, radius: 0 },
+    circle: { fill: '#00c4cc', stroke: '#000000', sw: 0 },
+    triangle: { fill: '#ff5757' }, star: { fill: '#ffbd59' },
+    line: { fill: '#1e2030', w: 400, h: 8, radius: 4, type: 'rect' },
+    text: { text: 'Text', color: '#1e2030', font: 'Poppins', size: 48, bold: false, italic: false, align: 'left', w: 500, h: 60 },
+    image: { src: '', radius: 0 },
+  }[type];
+  return Object.assign(base, d, o);
+}
+const PRESETS = {
+  h1: { type: 'text', text: 'Deine Überschrift', size: 96, bold: true, w: 800 },
+  h2: { type: 'text', text: 'Unterüberschrift', size: 56, bold: true, w: 700 },
+  body: { type: 'text', text: 'Hier steht dein Fließtext. Doppelklicke zum Bearbeiten.', size: 32, w: 600 },
+};
+function add(kind) {
+  const p = PRESETS[kind];
+  const e = p ? mkEl('text', p) : mkEl(kind);
+  e.x = (doc.w - e.w) / 2; e.y = (doc.h - e.h) / 2;
+  doc.els.push(e); sel = e.id; commit(); render(); panel();
+}
+
+/* ---------- Rendering ---------- */
+function style(n, e) {
+  const s = n.style;
+  s.left = e.x + 'px'; s.top = e.y + 'px'; s.width = e.w + 'px';
+  s.height = e.type === 'text' ? 'auto' : e.h + 'px';
+  s.transform = `rotate(${e.rot}deg)`; s.opacity = e.opacity;
+  s.background = ''; s.border = ''; s.borderRadius = ''; s.clipPath = '';
+  if (e.type === 'rect' || e.type === 'circle') {
+    s.background = e.fill;
+    if (e.sw) s.border = `${e.sw}px solid ${e.stroke}`;
+    s.borderRadius = e.type === 'circle' ? '50%' : (e.radius || 0) + 'px';
+  } else if (POLY[e.type]) {
+    s.background = e.fill;
+    s.clipPath = 'polygon(' + POLY[e.type].map(([x, y]) => `${x * 100}% ${y * 100}%`).join(',') + ')';
+  } else if (e.type === 'text') {
+    Object.assign(s, { color: e.color, fontFamily: `"${e.font}", sans-serif`, fontSize: e.size + 'px',
+      fontWeight: e.bold ? 700 : 400, fontStyle: e.italic ? 'italic' : 'normal', textAlign: e.align });
+  } else if (e.type === 'image') s.borderRadius = (e.radius || 0) + 'px', s.overflow = 'hidden';
+}
+function render() {
+  $('#box').style.width = doc.w * zoom + 'px'; $('#box').style.height = doc.h * zoom + 'px';
+  const st = $('#stage'); st.style.width = doc.w + 'px'; st.style.height = doc.h + 'px'; st.style.transform = `scale(${zoom})`;
+  $('#zoomlbl').textContent = Math.round(zoom * 100) + '%';
+  $('#clip').style.background = doc.bg;
+  document.documentElement.style.setProperty('--hs', 11 / zoom + 'px');
+  if (editing) { updateSel(); return; }
+  const clip = $('#clip'); clip.textContent = '';
+  for (const e of doc.els) {
+    const n = document.createElement('div');
+    n.className = 'el ' + e.type; n.dataset.id = e.id;
+    if (e.type === 'text') n.textContent = e.text;
+    if (e.type === 'image') { const im = new Image(); im.src = e.src; n.appendChild(im); }
+    style(n, e); clip.appendChild(n);
+    if (e.type === 'text') e.h = n.offsetHeight;
+  }
+  updateSel(); layers();
+}
+function updateSel() {
+  const e = cur(), s = $('#sel');
+  if (!e) { s.style.display = 'none'; return; }
+  Object.assign(s.style, { display: 'block', left: e.x + 'px', top: e.y + 'px', width: e.w + 'px', height: e.h + 'px', transform: `rotate(${e.rot}deg)` });
+  s.querySelectorAll('i').forEach(i => { if (e.type === 'text') i.style.display = ['n', 's'].includes(i.dataset.h) ? 'none' : ''; else i.style.display = ''; });
+}
+function layers() {
+  $('#layers').innerHTML = [...doc.els].reverse().map(e =>
+    `<div class="layer ${e.id === sel ? 'on' : ''}" data-id="${e.id}">${{ text: '🅣', image: '🖼', rect: '▭', circle: '●', triangle: '▲', star: '★' }[e.type] || '▭'} ${esc((e.text || e.type).slice(0, 18))}<small>${e.type}</small></div>`
+  ).join('') || '<p style="color:var(--muted)">Noch keine Elemente.</p>';
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* ---------- Eigenschaften-Panel ---------- */
+function panel() {
+  const e = cur(), p = $('#props');
+  const num = (l, k, v, min, max, step = 1) => `<label>${l}<input type="number" data-k="${k}" value="${Math.round(v * 100) / 100}" min="${min}" max="${max}" step="${step}"></label>`;
+  const col = (l, k, v) => `<label>${l}<input type="color" data-k="${k}" value="${v}"></label>`;
+  if (!e) {
+    p.innerHTML = `<h3>Dokument</h3>${col('Hintergrund', 'bg', doc.bg)}
+      <label>Breite<input type="number" data-doc="w" value="${doc.w}" min="100" max="5000"></label>
+      <label>Höhe<input type="number" data-doc="h" value="${doc.h}" min="100" max="5000"></label>
+      <p style="color:var(--muted);font-size:12px">Wähle ein Element aus, um es zu bearbeiten.</p>`;
+    return;
+  }
+  let h = `<h3>${e.type === 'text' ? 'Text' : e.type === 'image' ? 'Bild' : 'Form'}</h3>`;
+  if (e.type === 'text') {
+    h += `<label>Schrift<select data-k="font">${FONTS.map(f => `<option ${f === e.font ? 'selected' : ''}>${f}</option>`).join('')}</select></label>
+      ${num('Größe', 'size', e.size, 8, 600)}${col('Farbe', 'color', e.color)}
+      <div class="row"><button data-act="bold" class="${e.bold ? 'on' : ''}"><b>B</b></button><button data-act="italic" class="${e.italic ? 'on' : ''}"><i>I</i></button>
+      <button data-act="al-left" class="${e.align === 'left' ? 'on' : ''}">⇤</button><button data-act="al-center" class="${e.align === 'center' ? 'on' : ''}">↔</button><button data-act="al-right" class="${e.align === 'right' ? 'on' : ''}">⇥</button></div>`;
+  } else if (e.type !== 'image') {
+    h += col('Füllung', 'fill', e.fill);
+    if (e.type === 'rect' || e.type === 'circle') h += col('Rahmen', 'stroke', e.stroke) + num('Rahmenbreite', 'sw', e.sw || 0, 0, 100);
+    if (e.type === 'rect') h += num('Rundung', 'radius', e.radius || 0, 0, 1000);
+  } else h += num('Rundung', 'radius', e.radius || 0, 0, 1000);
+  h += `<label>Deckkraft<input type="range" data-k="opacity" min="0" max="1" step="0.01" value="${e.opacity}"></label>
+    ${num('Drehung °', 'rot', e.rot, -360, 360)}
+    <h3>Anordnen</h3>
+    <div class="row"><button data-act="front">Ganz vor</button><button data-act="fwd">Vor</button><button data-act="bwd">Zurück</button><button data-act="back">Ganz zurück</button></div>
+    <div class="row"><button data-act="cx">Horiz. zentrieren</button><button data-act="cy">Vert. zentrieren</button></div>
+    <div class="row"><button data-act="dup">Duplizieren</button><button data-act="del" class="danger">Löschen</button></div>`;
+  p.innerHTML = h;
+}
+$('#props').addEventListener('input', ev => {
+  const t = ev.target, e = cur();
+  if (t.dataset.doc) { doc[t.dataset.doc] = Math.max(100, +t.value || 100); render(); return; }
+  if (!t.dataset.k) return;
+  const v = t.type === 'number' || t.type === 'range' ? +t.value : t.value;
+  if (!e) doc[t.dataset.k] = v; else e[t.dataset.k] = v;
+  render();
+});
+$('#props').addEventListener('change', () => commit());
+$('#props').addEventListener('click', ev => {
+  const a = ev.target.dataset.act, e = cur(); if (!a || !e) return;
+  const i = doc.els.indexOf(e);
+  if (a === 'bold') e.bold = !e.bold;
+  else if (a === 'italic') e.italic = !e.italic;
+  else if (a.startsWith('al-')) e.align = a.slice(3);
+  else if (a === 'front') doc.els.push(...doc.els.splice(i, 1));
+  else if (a === 'back') doc.els.unshift(...doc.els.splice(i, 1));
+  else if (a === 'fwd' && i < doc.els.length - 1) [doc.els[i], doc.els[i + 1]] = [doc.els[i + 1], doc.els[i]];
+  else if (a === 'bwd' && i > 0) [doc.els[i], doc.els[i - 1]] = [doc.els[i - 1], doc.els[i]];
+  else if (a === 'cx') e.x = (doc.w - e.w) / 2;
+  else if (a === 'cy') e.y = (doc.h - e.h) / 2;
+  else if (a === 'dup') return dup();
+  else if (a === 'del') return del();
+  commit(); render(); panel();
+});
+
+/* ---------- Verlauf / Speichern ---------- */
+function commit() {
+  const s = JSON.stringify(doc);
+  if (hist[hi] === s) return;
+  hist = hist.slice(0, hi + 1); hist.push(s); if (hist.length > 100) hist.shift(); hi = hist.length - 1;
+  try { localStorage.setItem('designly-doc', s); } catch { /* Speicher voll oder gesperrt */ }
+}
+function restore(i) {
+  if (i < 0 || i >= hist.length) return;
+  hi = i; doc = JSON.parse(hist[hi]); if (!cur()) sel = null;
+  $('#size').value = `${doc.w}x${doc.h}`; render(); panel();
+}
+$('#undo').onclick = () => restore(hi - 1);
+$('#redo').onclick = () => restore(hi + 1);
+
+function dl(name, blob) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const fname = ext => ($('#title').value.trim() || 'design').replace(/[^\w\-äöüÄÖÜß ]+/g, '_') + ext;
+$('#save').onclick = () => dl(fname('.designly.json'), new Blob([JSON.stringify(doc)], { type: 'application/json' }));
+$('#load').onclick = () => $('#file').click();
+$('#file').onchange = async ev => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { const d = JSON.parse(await f.text()); if (!Array.isArray(d.els)) throw 0; doc = d; sel = null; commit(); fit(); panel(); }
+  catch { alert('Diese Datei ist kein gültiges Designly-Design.'); }
+  ev.target.value = '';
+};
+
+/* ---------- Interaktion ---------- */
+const stageEl = $('#stage');
+function pt(ev) { const r = stageEl.getBoundingClientRect(); return { x: (ev.clientX - r.left) / zoom, y: (ev.clientY - r.top) / zoom }; }
+function select(id) { sel = id; render(); panel(); }
+
+stageEl.addEventListener('pointerdown', ev => {
+  const hd = ev.target.dataset.h;
+  if (hd) { ev.preventDefault(); return hd === 'rot' ? startRotate() : startResize(hd, ev); }
+  const n = ev.target.closest('.el');
+  if (editing && n && n.dataset.id === editing) return;
+  if (n) { ev.preventDefault(); select(n.dataset.id); startMove(ev); } else select(null);
+});
+$('#work').addEventListener('pointerdown', ev => { if (ev.target.id === 'work' || ev.target.id === 'wrap') select(null); });
+window.addEventListener('pointermove', ev => drag && drag(ev));
+window.addEventListener('pointerup', () => {
+  if (!drag) return; drag = null;
+  $('#glv').style.display = $('#glh').style.display = 'none'; commit(); panel();
+});
+
+function startMove(ev) {
+  const e = cur(), o = { x: e.x, y: e.y }, sp = pt(ev);
+  drag = ev2 => {
+    const p = pt(ev2); let nx = o.x + p.x - sp.x, ny = o.y + p.y - sp.y;
+    const vx = Math.abs(nx + e.w / 2 - doc.w / 2) < 8, vy = Math.abs(ny + e.h / 2 - doc.h / 2) < 8;
+    if (vx) nx = (doc.w - e.w) / 2; if (vy) ny = (doc.h - e.h) / 2;
+    Object.assign($('#glv').style, { display: vx ? 'block' : 'none', left: doc.w / 2 + 'px', top: 0, width: 2 / zoom + 'px', height: doc.h + 'px' });
+    Object.assign($('#glh').style, { display: vy ? 'block' : 'none', top: doc.h / 2 + 'px', left: 0, height: 2 / zoom + 'px', width: doc.w + 'px' });
+    e.x = nx; e.y = ny; render();
+  };
+}
+function startResize(hd, ev) {
+  const e = cur(), [dx, dy] = DIR[hd], o = { ...e }, sp = pt(ev);
+  const rad = o.rot * Math.PI / 180, cos = Math.cos(rad), sin = Math.sin(rad), cx = o.x + o.w / 2, cy = o.y + o.h / 2;
+  drag = ev2 => {
+    const p = pt(ev2), mx = p.x - sp.x, my = p.y - sp.y;
+    const lx = mx * cos + my * sin, ly = -mx * sin + my * cos;
+    let nw = o.w, nh = o.h;
+    if (dx) nw = Math.max(20, o.w + dx * lx);
+    if (dy && e.type !== 'text') nh = Math.max(8, o.h + dy * ly);
+    if (e.type === 'text' && dx && dy) e.size = Math.max(8, Math.round(o.size * nw / o.w));
+    const ox = dx * (nw - o.w) / 2, oy = dy * (nh - o.h) / 2;
+    const ncx = cx + ox * cos - oy * sin, ncy = cy + ox * sin + oy * cos;
+    Object.assign(e, { w: nw, h: nh, x: ncx - nw / 2, y: ncy - nh / 2 }); render();
+  };
+}
+function startRotate() {
+  const e = cur();
+  drag = ev2 => {
+    const p = pt(ev2), a = Math.atan2(p.y - (e.y + e.h / 2), p.x - (e.x + e.w / 2)) * 180 / Math.PI + 90;
+    e.rot = Math.round(ev2.shiftKey ? Math.round(a / 15) * 15 : a); if (e.rot > 180) e.rot -= 360; render();
+  };
+}
+stageEl.addEventListener('dblclick', ev => {
+  const n = ev.target.closest('.el.text'); if (!n) return;
+  const e = doc.els.find(x => x.id === n.dataset.id); sel = e.id; editing = e.id;
+  n.contentEditable = 'true'; n.style.cursor = 'text'; n.style.userSelect = 'text'; n.focus();
+  document.getSelection().selectAllChildren(n);
+  n.onblur = () => { e.text = n.innerText.replace(/\n$/, '') || 'Text'; editing = null; commit(); render(); panel(); };
+});
+
+function dup() {
+  const e = cur(); if (!e) return;
+  const c = { ...JSON.parse(JSON.stringify(e)), id: uid(), x: e.x + 30, y: e.y + 30 };
+  doc.els.push(c); sel = c.id; commit(); render(); panel();
+}
+function del() {
+  if (!sel) return; doc.els = doc.els.filter(e => e.id !== sel); sel = null; commit(); render(); panel();
+}
+
+window.addEventListener('keydown', ev => {
+  const t = ev.target;
+  if (editing || /INPUT|SELECT|TEXTAREA/.test(t.tagName) || t.isContentEditable) return;
+  const k = ev.key.toLowerCase(), mod = ev.ctrlKey || ev.metaKey, e = cur();
+  if (mod && k === 'z') { ev.preventDefault(); restore(ev.shiftKey ? hi + 1 : hi - 1); }
+  else if (mod && k === 'y') { ev.preventDefault(); restore(hi + 1); }
+  else if (mod && k === 'd') { ev.preventDefault(); dup(); }
+  else if (mod && k === 'c' && e) clipboard = JSON.stringify(e);
+  else if (mod && k === 'v' && clipboard) {
+    const c = JSON.parse(clipboard); Object.assign(c, { id: uid(), x: c.x + 30, y: c.y + 30 });
+    clipboard = JSON.stringify(c); doc.els.push(c); sel = c.id; commit(); render(); panel();
+  }
+  else if (k === 'delete' || k === 'backspace') { ev.preventDefault(); del(); }
+  else if (k === 'escape') select(null);
+  else if (e && k.startsWith('arrow')) {
+    ev.preventDefault(); const s = ev.shiftKey ? 10 : 1;
+    if (k === 'arrowleft') e.x -= s; if (k === 'arrowright') e.x += s; if (k === 'arrowup') e.y -= s; if (k === 'arrowdown') e.y += s;
+    render(); clearTimeout(window._ak); window._ak = setTimeout(commit, 300);
+  }
+});
+
+/* ---------- Bilder ---------- */
+function addImage(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const r = new FileReader();
+  r.onload = () => {
+    const im = new Image();
+    im.onload = () => {
+      const sc = Math.min(1, 700 / Math.max(im.width, im.height)), w = im.width * sc, h = im.height * sc;
+      const e = mkEl('image', { src: r.result, w, h, x: (doc.w - w) / 2, y: (doc.h - h) / 2 });
+      doc.els.push(e); sel = e.id; commit(); render(); panel();
+    };
+    im.src = r.result;
+  };
+  r.readAsDataURL(file);
+}
+$('#upload').onclick = () => $('#img').click();
+$('#img').onchange = ev => { addImage(ev.target.files[0]); ev.target.value = ''; };
+$('#work').addEventListener('dragover', ev => ev.preventDefault());
+$('#work').addEventListener('drop', ev => { ev.preventDefault(); [...ev.dataTransfer.files].forEach(addImage); });
+window.addEventListener('paste', ev => { for (const it of ev.clipboardData.items) if (it.type.startsWith('image/')) addImage(it.getAsFile()); });
+
+/* ---------- Seitenleiste ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'p-' + b.dataset.tab));
+});
+document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => add(b.dataset.add));
+$('#layers').onclick = ev => { const l = ev.target.closest('.layer'); if (l) select(l.dataset.id); };
+$('#swatches').innerHTML = SWATCHES.map(c => `<button class="tool" data-bg="${c}" style="background:${c};height:40px"></button>`).join('');
+$('#swatches').onclick = ev => { const c = ev.target.dataset.bg; if (c) { doc.bg = c; commit(); render(); if (!sel) panel(); } };
+
+/* ---------- Größe / Zoom ---------- */
+$('#size').onchange = ev => { [doc.w, doc.h] = ev.target.value.split('x').map(Number); commit(); fit(); panel(); };
+function fit() {
+  const w = $('#work');
+  zoom = Math.max(.1, Math.min((w.clientWidth - 100) / doc.w, (w.clientHeight - 100) / doc.h, 1));
+  render();
+}
+const setZoom = z => { zoom = Math.min(2, Math.max(.1, z)); render(); };
+$('#zin').onclick = () => setZoom(zoom * 1.2);
+$('#zout').onclick = () => setZoom(zoom / 1.2);
+$('#fit').onclick = fit;
+$('#work').addEventListener('wheel', ev => { if (ev.ctrlKey) { ev.preventDefault(); setZoom(zoom * (ev.deltaY < 0 ? 1.1 : 1 / 1.1)); } }, { passive: false });
+window.addEventListener('resize', fit);
+
+/* ---------- Vorlagen ---------- */
+const T = (type, o) => mkEl(type, o);
+const TEMPLATES = [
+  { name: 'Sommer-Sale', css: 'linear-gradient(135deg,#ff9a56,#ff5757)', w: 1080, h: 1080, bg: '#ffbd59', els: () => [
+    T('circle', { x: 560, y: -160, w: 700, h: 700, fill: '#ff5757' }), T('circle', { x: -200, y: 700, w: 600, h: 600, fill: '#ffffff', opacity: .35 }),
+    T('text', { text: 'SOMMER\nSALE', font: 'Bebas Neue', size: 230, color: '#1e2030', x: 80, y: 200, w: 900 }),
+    T('text', { text: 'Bis zu 50% auf alles', font: 'Poppins', size: 56, bold: true, color: '#1e2030', x: 90, y: 800, w: 800 }),
+    T('rect', { fill: '#1e2030', x: 90, y: 900, w: 320, h: 90, radius: 45 }),
+    T('text', { text: 'Jetzt shoppen', font: 'Poppins', size: 36, bold: true, color: '#ffffff', align: 'center', x: 90, y: 922, w: 320 })] },
+  { name: 'Zitat', css: 'linear-gradient(135deg,#0f172a,#312e81)', w: 1080, h: 1080, bg: '#0f172a', els: () => [
+    T('text', { text: '“', font: 'Playfair Display', size: 400, color: '#7d2ae8', x: 90, y: 40, w: 300 }),
+    T('text', { text: 'Design ist nicht nur, wie es aussieht. Design ist, wie es funktioniert.', font: 'Playfair Display', size: 76, italic: true, color: '#ffffff', x: 100, y: 380, w: 880 }),
+    T('rect', { fill: '#00c4cc', x: 100, y: 800, w: 120, h: 6 }),
+    T('text', { text: 'STEVE JOBS', font: 'Montserrat', size: 32, bold: true, color: '#00c4cc', x: 100, y: 830, w: 600 })] },
+  { name: 'Event-Poster', css: 'linear-gradient(160deg,#7d2ae8,#00c4cc)', w: 1080, h: 1350, bg: '#1a1a2e', els: () => [
+    T('circle', { x: 140, y: 120, w: 800, h: 800, fill: '#7d2ae8', opacity: .85 }), T('star', { x: 700, y: 80, w: 260, h: 260, fill: '#ffbd59', rot: 15 }),
+    T('text', { text: 'LIVE\nMUSIC\nNIGHT', font: 'Bebas Neue', size: 270, color: '#ffffff', align: 'center', x: 90, y: 260, w: 900 }),
+    T('text', { text: 'Samstag, 21. Juni · 20 Uhr', font: 'Poppins', size: 48, bold: true, color: '#ffbd59', align: 'center', x: 90, y: 1080, w: 900 }),
+    T('text', { text: 'Club Neon · Eintritt frei', font: 'Poppins', size: 36, color: '#ffffff', align: 'center', x: 90, y: 1160, w: 900 })] },
+  { name: 'Präsentation', css: 'linear-gradient(135deg,#f8f1e7,#ffd9b0)', w: 1920, h: 1080, bg: '#f8f1e7', els: () => [
+    T('rect', { fill: '#7d2ae8', x: 0, y: 0, w: 40, h: 1080 }), T('circle', { fill: '#00c4cc', x: 1300, y: 200, w: 520, h: 520 }), T('triangle', { fill: '#ff5757', x: 1180, y: 520, w: 300, h: 300, rot: -12 }),
+    T('text', { text: 'Dein Titel hier', font: 'Playfair Display', size: 150, bold: true, color: '#1e2030', x: 140, y: 330, w: 1100 }),
+    T('text', { text: 'Untertitel oder kurze Beschreibung deiner Präsentation', font: 'Poppins', size: 48, color: '#6b7085', x: 140, y: 700, w: 1000 })] },
+];
+$('#tpls').innerHTML = TEMPLATES.map((t, i) => `<div class="tpl" data-i="${i}" style="background:${t.css}">${t.name}</div>`).join('');
+$('#tpls').onclick = ev => {
+  const n = ev.target.closest('.tpl'); if (!n) return;
+  if (doc.els.length && !confirm('Aktuelles Design durch die Vorlage ersetzen?')) return;
+  const t = TEMPLATES[+n.dataset.i];
+  doc = { w: t.w, h: t.h, bg: t.bg, els: t.els() }; sel = null;
+  $('#size').value = `${t.w}x${t.h}`; commit(); fit(); panel();
+};
+
+/* ---------- PNG-Export ---------- */
+function loadImg(src) {
+  return imgCache[src] ||= new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+}
+function wrapLines(g, text, maxW) {
+  const out = [];
+  for (const para of text.split('\n')) {
+    let line = '';
+    for (const word of para.split(' ')) {
+      const test = line ? line + ' ' + word : word;
+      if (line && g.measureText(test).width > maxW) { out.push(line); line = word; } else line = test;
+    }
+    out.push(line);
+  }
+  return out;
+}
+async function drawEl(g, e) {
+  g.save();
+  g.translate(e.x + e.w / 2, e.y + e.h / 2); g.rotate(e.rot * Math.PI / 180); g.translate(-e.w / 2, -e.h / 2);
+  g.globalAlpha = e.opacity;
+  const rr = (r) => { g.beginPath(); g.roundRect(0, 0, e.w, e.h, Math.min(r || 0, e.w / 2, e.h / 2)); };
+  if (e.type === 'rect' || e.type === 'circle') {
+    const s = e.sw || 0, i = s / 2;
+    g.beginPath();
+    if (e.type === 'circle') g.ellipse(e.w / 2, e.h / 2, e.w / 2, e.h / 2, 0, 0, 7); else g.roundRect(0, 0, e.w, e.h, Math.min(e.radius || 0, e.w / 2, e.h / 2));
+    g.fillStyle = e.fill; g.fill();
+    if (s) {
+      g.beginPath();
+      if (e.type === 'circle') g.ellipse(e.w / 2, e.h / 2, e.w / 2 - i, e.h / 2 - i, 0, 0, 7); else g.roundRect(i, i, e.w - s, e.h - s, Math.max(0, Math.min(e.radius || 0, e.w / 2, e.h / 2) - i));
+      g.strokeStyle = e.stroke; g.lineWidth = s; g.stroke();
+    }
+  } else if (POLY[e.type]) {
+    g.beginPath(); POLY[e.type].forEach(([x, y], k) => g[k ? 'lineTo' : 'moveTo'](x * e.w, y * e.h)); g.closePath();
+    g.fillStyle = e.fill; g.fill();
+  } else if (e.type === 'text') {
+    g.font = `${e.italic ? 'italic ' : ''}${e.bold ? 700 : 400} ${e.size}px "${e.font}", sans-serif`;
+    g.fillStyle = e.color; g.textBaseline = 'top'; g.textAlign = e.align;
+    const x = e.align === 'center' ? e.w / 2 : e.align === 'right' ? e.w : 0;
+    wrapLines(g, e.text, e.w).forEach((ln, k) => g.fillText(ln, x, k * e.size * 1.2 + (e.size * 1.2 - e.size) / 2 * .6));
+  } else if (e.type === 'image') {
+    const im = await loadImg(e.src);
+    if (im) {
+      rr(e.radius); g.clip();
+      const sc = Math.max(e.w / im.width, e.h / im.height), sw = e.w / sc, sh = e.h / sc;
+      g.drawImage(im, (im.width - sw) / 2, (im.height - sh) / 2, sw, sh, 0, 0, e.w, e.h);
+    }
+  }
+  g.restore();
+}
+$('#export').onclick = async () => {
+  await document.fonts.ready;
+  const c = document.createElement('canvas'); c.width = doc.w; c.height = doc.h;
+  const g = c.getContext('2d'); g.fillStyle = doc.bg; g.fillRect(0, 0, doc.w, doc.h);
+  for (const e of doc.els) await drawEl(g, e);
+  c.toBlob(b => dl(fname('.png'), b), 'image/png');
+};
+
+/* ---------- Start ---------- */
+try { const s = localStorage.getItem('designly-doc'); if (s) { const d = JSON.parse(s); if (Array.isArray(d.els)) doc = d; } } catch { /* ignorieren */ }
+if (!doc.els.length) doc.els = TEMPLATES[0].els(), doc.bg = TEMPLATES[0].bg;
+$('#size').value = [...$('#size').options].some(o => o.value === `${doc.w}x${doc.h}`) ? `${doc.w}x${doc.h}` : '1080x1080';
+commit(); fit(); panel();
+document.fonts.ready.then(render);
+</script>
+</body>
+</html>
