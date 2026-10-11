@@ -54,7 +54,8 @@ export function drawOverlay(canvas: HTMLCanvasElement, o: OverlayText): void {
   const gap = hLines.length && sLines.length ? sSize * 0.6 : 0;
   const ctaGap = cta && (hBlock || sBlock) ? cSize * 0.9 : 0;
   const total = hBlock + gap + sBlock + ctaGap + ctaH;
-  const bottom = h - h * 0.08;
+  // Im Hochformat (Reels, TikTok) liegen unten Bedienelemente und Bildunterschrift: Text höher setzen.
+  const bottom = h - h * (h > w ? 0.2 : 0.08);
   const top = bottom - total;
 
   // Verlauf hinter dem Text, damit er auf hellen Bildern lesbar bleibt.
