@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bot, Download, Loader2, Trash2, Upload } from "lucide-react";
+import { Bot, Download, Link2, Loader2, Trash2, Upload } from "lucide-react";
 import type { MediaItem } from "@/lib/types";
 
 const downloadName = (i: MediaItem) => `${i.id}${i.provider === "ffmpeg" ? ".mp4" : i.provider === "mock" ? ".svg" : ""}`;
@@ -11,6 +11,10 @@ export default function LibraryPage() {
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
+  const [showImport, setShowImport] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importNote, setImportNote] = useState("");
   const input = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -45,6 +49,28 @@ export default function LibraryPage() {
     load();
   }
 
+  async function importLinks() {
+    const urls = importText.split(/\s+/).filter(Boolean);
+    if (!urls.length) return;
+    setError("");
+    setImportNote("");
+    setImporting(true);
+    try {
+      const res = await fetch("/api/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ urls }) });
+      const data = await res.json();
+      if (!res.ok && !data.errors) throw new Error(data.error ?? "Fehler");
+      const failed: { url: string; error: string }[] = data.errors ?? [];
+      setImportNote(`${data.items?.length ?? 0} Bild(er) importiert${failed.length ? `, ${failed.length} fehlgeschlagen` : ""}.`);
+      if (failed.length) setError(failed.map((f) => `${f.url.split("/").pop()?.slice(0, 40)}: ${f.error}`).join(" · "));
+      else setImportText("");
+      load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setImporting(false);
+    }
+  }
+
   return (
     <div
       className="mx-auto max-w-6xl"
@@ -54,11 +80,27 @@ export default function LibraryPage() {
     >
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-bold">Library{items ? ` (${items.length})` : ""}</h1>
-        <button onClick={() => input.current?.click()} disabled={uploading} className="ml-auto flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-fg disabled:opacity-60">
+        <button onClick={() => setShowImport((v) => !v)} className="ml-auto flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-semibold hover:bg-surface2">
+          <Link2 size={16} /> Von Link hinzufügen
+        </button>
+        <button onClick={() => input.current?.click()} disabled={uploading} className="flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-fg disabled:opacity-60">
           {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />} Bilder hochladen
         </button>
         <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden onChange={(e) => { if (e.target.files?.length) upload(e.target.files); e.target.value = ""; }} />
       </div>
+      {showImport && (
+        <div className="mb-4 rounded-xl border border-line bg-surface p-3">
+          <p className="mb-2 text-sm text-muted">Bild-Links einfügen, einer pro Zeile. Erlaubt sind nur Adressen von <code>cdn.shopify.com</code> (deine Shop-Bilder).</p>
+          <textarea value={importText} onChange={(e) => setImportText(e.target.value)} rows={5} placeholder="https://cdn.shopify.com/s/files/..." aria-label="Bild-Links"
+            className="w-full resize-y rounded-lg border border-line bg-bg p-2 font-mono text-xs outline-none focus:border-accent" />
+          <div className="mt-2 flex items-center gap-3">
+            <button onClick={importLinks} disabled={importing || !importText.trim()} className="flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-fg disabled:opacity-60">
+              {importing && <Loader2 size={16} className="animate-spin" />} Importieren
+            </button>
+            {importNote && <span className="text-sm text-muted">{importNote}</span>}
+          </div>
+        </div>
+      )}
       {error && <p className="mb-3 text-sm text-red-500" role="alert">{error}</p>}
       {dragging && <div className="mb-4 rounded-xl border-2 border-dashed border-accent p-6 text-center text-sm">Zum Hochladen hier ablegen (PNG, JPG, WebP, max. 15 MB)</div>}
 

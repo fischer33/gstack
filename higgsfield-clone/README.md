@@ -48,6 +48,7 @@ npm run dev
 ## Eigene Bilder hochladen und Werbefilme erstellen
 
 - **Upload:** In der Library auf „Bilder hochladen“ klicken oder Dateien ins Fenster ziehen (PNG, JPG, WebP, max. 15 MB). Der Dateityp wird am Inhalt geprüft.
+- **Von Link hinzufügen:** In der Library Bild-Links einfügen (einer pro Zeile, bis zu 30). Erlaubt sind nur Adressen von `cdn.shopify.com`, also deine Shop-Bilder; weitere Hosts nur über `IMPORT_ALLOWED_HOSTS`. Weiterleitungen werden erneut geprüft, die Größe ist auf 15 MB begrenzt, der Dateityp wird am Inhalt erkannt.
 - **Ad-Maker** (`/ads`): Bilder aus der Library auswählen, anordnen, pro Folie Überschrift und Unterzeile setzen und einen Call-to-Action für die letzte Folie. Ergebnis ist ein MP4 in 9:16, 1:1 oder 16:9 mit langsamem Zoom und Überblendung (2 bis 6 Sekunden pro Folie, bis zu 10 Folien).
 - Läuft komplett lokal und kostenlos über ein mitgeliefertes ffmpeg (`@ffmpeg-installer/ffmpeg`). Eigenes ffmpeg per `FFMPEG_PATH`.
 - **Das ist eine Bilder-Show, kein KI-Video.** Die Videos haben keinen Ton; Musik fügst du in der Ziel-App (Instagram, TikTok, CapCut) hinzu.
