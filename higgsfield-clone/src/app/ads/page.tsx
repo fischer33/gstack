@@ -25,6 +25,9 @@ export default function AdsPage() {
   const [secs, setSecs] = useState(3);
   const [fade, setFade] = useState(0.5);
   const [fit, setFit] = useState<"cover" | "contain">("cover");
+  const [showScript, setShowScript] = useState(false);
+  const [scriptText, setScriptText] = useState("");
+  const [scriptMsg, setScriptMsg] = useState("");
   const [title, setTitle] = useState("");
   const [cta, setCta] = useState("Jetzt entdecken");
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -71,6 +74,44 @@ export default function AdsPage() {
     setSlides((s) => [...s, { mediaId: m.id, url: m.url, headline: "", sub: "" }]);
     setSel(slides.length);
   };
+
+  // Drehbuch (JSON) einlesen: setzt Format, Zeiten, Call-to-Action und die Folien samt Texten.
+  // Bilder werden über "match" gefunden: ein Teil des Bildtitels (z. B. "hoodie-black-front").
+  function applyScript() {
+    setScriptMsg("");
+    setError("");
+    try {
+      const d = JSON.parse(scriptText);
+      if (!d || typeof d !== "object") throw new Error("Das Drehbuch muss ein JSON-Objekt sein");
+      if (!(d.format in FORMATS)) throw new Error("format muss 9:16, 1:1 oder 16:9 sein");
+      const sec = Number(d.secondsPerSlide ?? 3);
+      const tr = Number(d.transition ?? 0.5);
+      if (!(sec >= 2 && sec <= 6)) throw new Error("secondsPerSlide muss zwischen 2 und 6 liegen");
+      if (!(tr >= 0 && tr <= 1.5 && tr <= sec - 0.5)) throw new Error("transition passt nicht zur Folienlänge");
+      if (!Array.isArray(d.slides) || d.slides.length < 1 || d.slides.length > MAX_SLIDES) throw new Error(`slides: 1 bis ${MAX_SLIDES} Folien`);
+      const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const next: Slide[] = [];
+      const missing: string[] = [];
+      for (const sl of d.slides) {
+        const key = norm(String(sl.match ?? ""));
+        const hits = images.filter((m) => key && norm(m.prompt).includes(key)).sort((a, b) => a.prompt.length - b.prompt.length);
+        if (!hits.length) { missing.push(String(sl.match)); continue; }
+        next.push({ mediaId: hits[0].id, url: hits[0].url, headline: String(sl.headline ?? "").slice(0, 80), sub: String(sl.sub ?? "").slice(0, 140) });
+      }
+      if (missing.length) throw new Error(`Diese Bilder fehlen in der Library (zuerst importieren): ${missing.join(", ")}`);
+      setFormat(d.format);
+      setSecs(sec);
+      setFade(tr);
+      setFit(d.fit === "contain" ? "contain" : "cover");
+      if (typeof d.cta === "string") setCta(d.cta.slice(0, 40));
+      if (typeof d.title === "string") setTitle(d.title.slice(0, 100));
+      setSlides(next);
+      setSel(0);
+      setScriptMsg(`${next.length} Folien übernommen.`);
+    } catch (e) {
+      setError(e instanceof SyntaxError ? "Das Drehbuch ist kein gültiges JSON" : (e as Error).message);
+    }
+  }
 
   async function render() {
     setError("");
@@ -130,6 +171,20 @@ export default function AdsPage() {
                 </button>
               ))}
             </div>
+          </section>
+
+          <section>
+            <button onClick={() => setShowScript((v) => !v)} className="text-sm text-accent underline">{showScript ? "Drehbuch ausblenden" : "Drehbuch einfügen (alles auf einmal ausfüllen)"}</button>
+            {showScript && (
+              <div className="mt-2 rounded-xl border border-line bg-surface p-3">
+                <textarea value={scriptText} onChange={(e) => setScriptText(e.target.value)} rows={8} aria-label="Drehbuch" placeholder='{"format":"9:16","fit":"contain","slides":[{"match":"hoodie-black-front","headline":"Bald."}]}'
+                  className="w-full resize-y rounded-lg border border-line bg-bg p-2 font-mono text-xs outline-none focus:border-accent" />
+                <div className="mt-2 flex items-center gap-3">
+                  <button onClick={applyScript} disabled={!scriptText.trim() || library === null} className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-fg disabled:opacity-60">Übernehmen</button>
+                  {scriptMsg && <span className="text-sm text-muted">{scriptMsg}</span>}
+                </div>
+              </div>
+            )}
           </section>
 
           <section>

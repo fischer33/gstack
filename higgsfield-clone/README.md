@@ -50,6 +50,11 @@ npm run dev
 - **Upload:** In der Library auf „Bilder hochladen“ klicken oder Dateien ins Fenster ziehen (PNG, JPG, WebP, max. 15 MB). Der Dateityp wird am Inhalt geprüft.
 - **Von Link hinzufügen:** In der Library Bild-Links einfügen (einer pro Zeile, bis zu 30). Erlaubt sind nur Adressen von `cdn.shopify.com`, also deine Shop-Bilder; weitere Hosts nur über `IMPORT_ALLOWED_HOSTS`. Weiterleitungen werden erneut geprüft, die Größe ist auf 15 MB begrenzt, der Dateityp wird am Inhalt erkannt.
 - **Ad-Maker** (`/ads`): Bilder aus der Library auswählen, anordnen, pro Folie Überschrift und Unterzeile setzen und einen Call-to-Action für die letzte Folie. Ergebnis ist ein MP4 in 9:16, 1:1 oder 16:9 mit langsamem Zoom und Überblendung (2 bis 6 Sekunden pro Folie, bis zu 10 Folien).
+- **Drehbuch einfügen** (Ad-Maker): Ein JSON setzt Format, Zeiten, Call-to-Action und alle Folien samt Texten auf einmal. Bilder werden über `match` gefunden, einen Teil des Bildtitels (bei Importen der Dateiname, z. B. `hoodie-black-front`). Beispiel:
+  ```json
+  {"format":"9:16","fit":"contain","secondsPerSlide":3,"transition":0.5,"cta":"Jetzt ansehen",
+   "slides":[{"match":"hoodie-black-front","headline":"Bald.","sub":"Etwas Neues kommt."}]}
+  ```
 - **Bild im Format:** „Füllen“ schneidet Ränder ab, „Einpassen“ zeigt das ganze Bild und füllt den Rest unscharf auf (sinnvoll für quadratische Produktbilder im 9:16-Reel).
 - Läuft komplett lokal und kostenlos über ein mitgeliefertes ffmpeg (`@ffmpeg-installer/ffmpeg`). Eigenes ffmpeg per `FFMPEG_PATH`.
 - **Das ist eine Bilder-Show, kein KI-Video.** Die Videos haben keinen Ton; Musik fügst du in der Ziel-App (Instagram, TikTok, CapCut) hinzu.
