@@ -43,7 +43,7 @@ export async function POST(req: Request) {
 
   let result;
   try {
-    result = await renderAd({ slides, format, secondsPerSlide: secs, transition: fade });
+    result = await renderAd({ slides, format, secondsPerSlide: secs, transition: fade, fit: body.fit === "contain" ? "contain" : "cover" });
   } catch (err) {
     console.error("[ad]", (err as Error).message);
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

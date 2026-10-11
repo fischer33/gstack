@@ -6,6 +6,8 @@ import { MEDIA_DIR, videoPath } from "./media-store";
 
 export const AD_FORMATS = { "9:16": [720, 1280], "1:1": [1080, 1080], "16:9": [1280, 720] } as const;
 export type AdFormat = keyof typeof AD_FORMATS;
+// cover: Bild füllt das Format (Ränder werden abgeschnitten). contain: ganzes Bild sichtbar, Rest = unscharfer Hintergrund.
+export type AdFit = "cover" | "contain";
 
 export interface AdSlide {
   imageFile: string; // Pfad zu einem Bild in MEDIA_DIR
@@ -31,7 +33,7 @@ const enqueue = <T>(job: () => Promise<T>): Promise<T> => {
 
 // Baut den Filtergraphen. Bewusst ohne `xfade` (fehlt in älteren ffmpeg-Versionen): Jede Folie
 // bekommt einen Alpha-Einblendeffekt und wird zeitversetzt über die vorherige gelegt = echte Überblendung.
-export function buildFilter(n: number, w: number, h: number, secs: number, fade: number): string {
+export function buildFilter(n: number, w: number, h: number, secs: number, fade: number, fit: AdFit = "cover"): string {
   const frames = Math.round(secs * FPS);
   const step = secs - fade;
   const total = n * secs - (n - 1) * fade;
@@ -41,10 +43,18 @@ export function buildFilter(n: number, w: number, h: number, secs: number, fade:
     const txt = 2 * i + 1;
     // Zoom abwechselnd hinein und heraus; Bild vorher 2x vergrößern, damit der Zoom nicht ruckelt.
     const z = i % 2 === 0 ? `1+0.14*on/${frames}` : `1.14-0.14*on/${frames}`;
-    parts.push(
-      `[${img}:v]scale=${w * 2}:${h * 2}:force_original_aspect_ratio=increase,crop=${w * 2}:${h * 2},` +
-        `zoompan=z='${z}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=${w}x${h}:fps=${FPS},setsar=1[z${i}]`,
-    );
+    const zoom = `zoompan=z='${z}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=${w}x${h}:fps=${FPS},setsar=1`;
+    if (fit === "contain") {
+      const [qw, qh] = [Math.round(w / 4), Math.round(h / 4)];
+      parts.push(
+        `[${img}:v]split[bs${i}][fs${i}]`,
+        `[bs${i}]scale=${qw}:${qh}:force_original_aspect_ratio=increase,crop=${qw}:${qh},boxblur=6:2,scale=${w * 2}:${h * 2}[bb${i}]`,
+        `[fs${i}]scale=${w * 2}:${h * 2}:force_original_aspect_ratio=decrease[ff${i}]`,
+        `[bb${i}][ff${i}]overlay=(W-w)/2:(H-h)/2,${zoom}[z${i}]`,
+      );
+    } else {
+      parts.push(`[${img}:v]scale=${w * 2}:${h * 2}:force_original_aspect_ratio=increase,crop=${w * 2}:${h * 2},${zoom}[z${i}]`);
+    }
     parts.push(`[${txt}:v]scale=${w}:${h},format=rgba[t${i}]`);
     const fadeIn = i > 0 && fade > 0 ? `,fade=t=in:st=0:d=${fade}:alpha=1` : "";
     const shift = i > 0 ? `,setpts=PTS+${(i * step).toFixed(3)}/TB` : "";
@@ -63,6 +73,7 @@ export async function renderAd(opts: {
   format: AdFormat;
   secondsPerSlide: number;
   transition: number;
+  fit?: AdFit;
 }): Promise<{ id: string; seconds: number }> {
   return enqueue(async () => {
     const { slides, format, secondsPerSlide: secs, transition: fade } = opts;
@@ -79,7 +90,7 @@ export async function renderAd(opts: {
         args.push("-i", slides[i].imageFile); // ein einzelnes Bild, zoompan erzeugt die Bilder
         args.push("-loop", "1", "-framerate", String(FPS), "-t", String(secs), "-i", overlay);
       }
-      args.push("-filter_complex", buildFilter(slides.length, w, h, secs, fade), "-map", "[out]");
+      args.push("-filter_complex", buildFilter(slides.length, w, h, secs, fade, opts.fit), "-map", "[out]");
       args.push("-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", out);
 
       await new Promise<void>((resolve, reject) => {

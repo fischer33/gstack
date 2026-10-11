@@ -24,6 +24,7 @@ export default function AdsPage() {
   const [format, setFormat] = useState<Format>("9:16");
   const [secs, setSecs] = useState(3);
   const [fade, setFade] = useState(0.5);
+  const [fit, setFit] = useState<"cover" | "contain">("cover");
   const [title, setTitle] = useState("");
   const [cta, setCta] = useState("Jetzt entdecken");
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -87,7 +88,7 @@ export default function AdsPage() {
       const res = await fetch("/api/ad", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ format, secondsPerSlide: secs, transition: fade, title, slides: payload }),
+        body: JSON.stringify({ format, secondsPerSlide: secs, transition: fade, fit, title, slides: payload }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Fehler beim Rendern");
@@ -176,6 +177,14 @@ export default function AdsPage() {
               ))}
             </div>
           </div>
+          <div>
+            <span className="mb-1 block text-sm text-muted">Bild im Format</span>
+            <div className="flex gap-2">
+              <button onClick={() => setFit("cover")} className={`rounded-lg px-3 py-1 text-sm ${fit === "cover" ? "bg-accent text-accent-fg" : "bg-surface text-muted"}`}>Füllen</button>
+              <button onClick={() => setFit("contain")} className={`rounded-lg px-3 py-1 text-sm ${fit === "contain" ? "bg-accent text-accent-fg" : "bg-surface text-muted"}`}>Einpassen</button>
+            </div>
+            <p className="mt-1 text-xs text-muted">{fit === "cover" ? "Das Bild füllt alles, Ränder werden abgeschnitten." : "Das ganze Bild bleibt sichtbar, der Rest wird unscharf aufgefüllt."}</p>
+          </div>
           <label className="block text-sm">
             <span className="mb-1 block text-muted">Sekunden pro Folie: {secs}</span>
             <input type="range" min={2} max={6} step={0.5} value={secs} onChange={(e) => { const v = Number(e.target.value); setSecs(v); setFade((f) => Math.min(f, v - 0.5)); }} className="w-full accent-[#d1fe17]" />
@@ -191,7 +200,9 @@ export default function AdsPage() {
               {current ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={current.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  {fit === "contain" && /* eslint-disable-next-line @next/next/no-img-element */ <img src={current.url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl" />}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={current.url} alt="" className={`absolute inset-0 h-full w-full ${fit === "contain" ? "object-contain" : "object-cover"}`} />
                   <canvas ref={previewRef} width={w} height={h} className="absolute inset-0 h-full w-full" />
                 </>
               ) : (
