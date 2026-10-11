@@ -51,11 +51,12 @@ export function buildFilter(n: number, w: number, h: number, secs: number, fade:
         `[${img}:v]split[bs${i}][fs${i}]`,
         // Hintergrund = Farbe der oberen linken Bildecke (bei Studiofotos der Studiohintergrund, meist weiß)
         `[bs${i}]crop=16:16:0:0,scale=${w * 2}:${h * 2}[bb${i}]`,
-        `[fs${i}]scale=${w * 2}:${h * 2}:force_original_aspect_ratio=decrease[ff${i}]`,
+        `[fs${i}]scale=${w * 2}:${h * 2}:force_original_aspect_ratio=decrease:flags=lanczos[ff${i}]`,
         `[bb${i}][ff${i}]overlay=(W-w)/2:(H-h)*0.22,${zoom}[z${i}]`,
       );
     } else {
-      parts.push(`[${img}:v]scale=${w * 2}:${h * 2}:force_original_aspect_ratio=increase,crop=${w * 2}:${h * 2},${zoom}[z${i}]`);
+      // Fotos im Vollbild werden meist stark hochskaliert: Lanczos + leichtes Nachschärfen gegen Weichheit
+      parts.push(`[${img}:v]scale=${w * 2}:${h * 2}:force_original_aspect_ratio=increase:flags=lanczos,crop=${w * 2}:${h * 2},${zoom},unsharp=5:5:0.7:5:5:0[z${i}]`);
     }
     parts.push(`[${txt}:v]scale=${w}:${h},format=rgba[t${i}]`);
     const fadeIn = i > 0 && fade > 0 ? `,fade=t=in:st=0:d=${fade}:alpha=1` : "";
