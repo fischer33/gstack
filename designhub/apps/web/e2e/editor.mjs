@@ -227,11 +227,11 @@ await p.screenshot({ path: OUT + 'c-image.png' });
 
 // ---- Zurück speichert statt zu warnen ----
 let confirmShown = false; p.once('dialog', d => { confirmShown = true; d.dismiss(); });
-const designUrl = p.url();
+const backUrl = p.url();
 await p.click('a[aria-label="Zurück zum Dashboard"]'); await p.waitForURL('**/app', { timeout: 8000 });
-const saved = await p.evaluate(async (id) => (await (await fetch('/api/designs/' + id)).json()).pages[0].elements.length, designUrl.split('/').pop());
+const saved = await p.evaluate(async (id) => (await (await fetch('/api/designs/' + id)).json()).pages[0].elements.length, backUrl.split('/').pop());
 ok('Zurück-Pfeil speichert zuerst und fragt nicht nach', !confirmShown && saved >= 1, String(saved));
-await p.goto(designUrl); await p.waitForSelector('canvas'); await wait(600);
+await p.goto(backUrl); await p.waitForSelector('canvas'); await wait(600);
 
 // ---- Fremdes Design ----
 const ctx2 = await b.newContext(); const p2 = await ctx2.newPage();
