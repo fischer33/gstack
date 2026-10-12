@@ -3,3 +3,4 @@ export * from './document-utils';
 export * from './api';
 export * from './svg';
 export * from './scale';
+export * from './schema';
