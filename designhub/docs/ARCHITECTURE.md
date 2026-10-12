@@ -128,7 +128,17 @@ Nachstellen im Browser: `/design/<id>?bench=300` füllt das Design (nur im Speic
 
 **Gelernt (Fehlerklasse):** Konva-Knoten werden von React nur bei *geänderten* Eigenschaften aktualisiert. Endet eine Geste ohne Modelländerung (z. B. begrenzter Zuschnitt), bliebe der Knoten sonst verschoben stehen. Deshalb setzt `resetNodeToModel` die Knoten nach jeder Geste explizit auf den Modellzustand.
 
-**Noch offen:** Dauerhaftes Speichern der Bilder (bis Etappe f als Data-URL im Dokument), Bildfilter im SVG-Export (Etappe e), Touch-Gesten, Gruppen *innerhalb* von Gruppen bearbeiten.
+**Noch offen:** Dauerhaftes Speichern der Bilder (bis Etappe f als Data-URL im Dokument), Touch-Gesten, Gruppen *innerhalb* von Gruppen bearbeiten.
+
+## 5a. Export und Vorlagen (Etappe e)
+
+**Raster (PNG/JPG/PDF):** `renderPageToCanvas` (`apps/web/src/editor/export/renderPage.tsx`) zeichnet eine Seite in einen unsichtbaren react-konva-Stage mit denselben `ElementNode`-Komponenten wie der Editor, daher stimmt das Ergebnis mit dem Bildschirm überein (inklusive Textumbruch und Filtern). Vorher laden `preparePages` alle Schriften und Bilder, damit synchron gerendert werden kann. JPG und PDF werden auf Weiß gesetzt. PDF: jsPDF, Seite = px × 0,75 pt, ein JPEG-Bild je Seite. Mehrere Dateien: ZIP über fflate. jsPDF und der Renderer werden erst beim Export per dynamischem Import geladen, sie liegen nicht im Editor-Bundle.
+
+**SVG:** Eigener Serializer `pageToSvg` (`packages/shared`), kein DOM-Screenshot. Damit der Umbruch gleich bleibt, misst der Export die Zeilen mit `Konva.Text.textArr` und übergibt sie als `textLines`; Verläufe, Pfeilspitzen, Zuschnitt und Bildfilter (SVG-Filter: Helligkeit, Kontrast, Sättigung, Weichzeichnen) folgen den Konva-Formeln. Ein e2e-Test vergleicht das SVG pixelweise mit dem Editor (<1,5 % Abweichung). Grenze: Schriften werden nicht eingebettet.
+
+**Grenzen:** Kante ≤ 16 384 px und ≤ 64 Mio. Pixel (`exportOptions.ts`); der Dialog sperrt zu große Faktoren, statt den Browser still scheitern zu lassen.
+
+**Vorlagen:** 21 generierte (`prisma/seed.ts`) plus 14 handgestaltete als JSON (`prisma/templates/*.json`, erzeugt mit `build-templates.ts`), davon drei mehrseitig. Jede Vorlage läuft vor dem Speichern durch `parseDesignDocument` (zod-Schema in `packages/shared/src/schema.ts`: Farben, Schriftnamen, Bild-URLs, Pfaddaten, Größen- und Tiefenlimits); dasselbe Schema soll in Etappe (f) das Speichern von Designs absichern. Mehrseitige Vorlagen ersetzen die aktive Seite und fügen die übrigen dahinter ein (`applyTemplatePages`, ein Undo-Schritt).
 
 ## 6. Backend
 
@@ -159,8 +169,8 @@ Vorschaubilder sind vorerst SVG-Data-URLs aus `pageToSvg` (`packages/shared`), d
 | (a) ✅ | Setup, Auth (E-Mail + Google), Landing/Login, Theme | Registrieren, Einloggen, Logout im Browser |
 | (b) ✅ | Dashboard, Format-Schnellauswahl, „Zuletzt bearbeitet“, Meine Designs, Ordner, Papierkorb | Design anlegen und in der Liste sehen |
 | (c) ✅ | Editor-Kern: Canvas, Zoom/Pan, Auswahl, Transformer, Formen/Text/Bild, Undo/Redo, Tastenkürzel, Store-Tests | 100+ Objekte flüssig, Undo/Redo getestet |
-| (d) | Toolbar, Panels, Ebenen (Drag-Sortierung), Gruppieren, Ausrichten, Smart Guides, Bildfilter/Crop, Hintergründe, mehrseitig | Alle Muss-Funktionen bedienbar |
-| (e) | 20+ Vorlagen, Export PNG/JPG/SVG/PDF | Vorlage anwenden und exportieren |
+| (d) ✅ | Toolbar, Panels, Ebenen (Drag-Sortierung), Gruppieren, Ausrichten, Smart Guides, Bildfilter/Crop, Hintergründe, mehrseitig | Alle Muss-Funktionen bedienbar |
+| (e) ✅ | 20+ Vorlagen, Export PNG/JPG/SVG/PDF | Vorlage anwenden und exportieren |
 | (f) | Autosave, Speichern in DB, Teilen per Link, Einstellungen/Profil | Reload behält Design, Link öffnet Ansicht |
 
 ## 8. Risiken

@@ -1,6 +1,6 @@
 # DesignHub
 
-Browserbasierter Grafik-Editor (Vorlagen, Canvas, Export). Stand: **Etappe (d) – Toolbar und Panels** (zusätzlich zu Auth, Dashboard und Editor-Kern: Schriften, Farbwähler, Ebenen, Gruppen, Ausrichten, Smart Guides, mehrere Seiten, Vorlagen, Hintergründe, Bildwerkzeuge).
+Browserbasierter Grafik-Editor (Vorlagen, Canvas, Export). Stand: **Etappe (e) – Vorlagen und Export** (zusätzlich zu Auth, Dashboard und Editor-Kern: Schriften, Farbwähler, Ebenen, Gruppen, Ausrichten, Smart Guides, mehrere Seiten, Vorlagen, Hintergründe, Bildwerkzeuge).
 Architektur und Etappenplan: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Voraussetzungen
@@ -24,7 +24,7 @@ Ohne Docker: eine eigene PostgreSQL-16-Instanz genügt. Lege Benutzer `designhub
 npm run typecheck && npm test && npm run build
 ```
 
-Die Server-Tests für das Dashboard laufen gegen die echte Datenbank aus `.env` (Docker: `npm run db:up && npm run db:migrate`). Ist keine DB erreichbar, werden sie übersprungen. Für die Vorlagen einmalig `npm run db:seed` ausführen.
+Die Server-Tests für das Dashboard laufen gegen die echte Datenbank aus `.env` (Docker: `npm run db:up && npm run db:migrate`). Ist keine DB erreichbar, werden sie übersprungen. Für die Vorlagen einmalig `npm run db:seed` ausführen (mehrfaches Ausführen ist unbedenklich). Eigene Vorlagen: `apps/server/prisma/build-templates.ts` anpassen, `npm run db:templates -w @designhub/server` erzeugt die JSON-Dateien, jede wird mit demselben Schema geprüft wie gespeicherte Designs.
 
 Manuell im Browser (`http://localhost:5173`):
 1. Landing-Seite öffnen, oben rechts Hell/System/Dunkel umschalten.
@@ -65,10 +65,14 @@ Im Dashboard ein Format oder eine Vorlage anklicken. Dann:
 | Lineale und Hilfslinien | Lineale oben/links in Pixeln; aus einem Lineal eine Hilfslinie auf die Fläche ziehen, verschieben, zum Löschen zurück auf das Lineal ziehen; Umschalt+R blendet alles aus |
 | Ebenenpanel | Reihenfolge per Drag & Drop, ein-/ausblenden, sperren, mehrere wählen |
 | Seiten | unten hinzufügen, duplizieren, löschen, umsortieren (Ziehen oder Pfeile) |
+| Vorlagen | 35 Stück in 6 Kategorien, darunter 14 handgestaltete (auch mehrseitige: Karussell, Pitch-Deck, Visitenkarte); Anwenden ist ein Undo-Schritt |
+| Herunterladen | Knopf oben rechts oder Strg/Cmd+Umschalt+E: PNG, JPG (Qualität), SVG, PDF; aktuelle oder alle Seiten, Größe 0,5–4×; mehrere Dateien als ZIP, mehrseitig als PDF |
 
 **Hintergrund entfernen einrichten:** API-Schlüssel bei [remove.bg](https://www.remove.bg/api) holen und in `.env` als `BG_REMOVAL_API_KEY` eintragen, dann den Server neu starten. Ohne Schlüssel zeigt der Editor einen Hinweis.
 
 **Schriften und Datenschutz:** Die Schriften kommen von Google Fonts, dabei wird die IP des Nutzers an Google übertragen. Wer das vermeiden will, liefert sie selbst aus (`@fontsource-*`).
+
+**Export-Hinweise:** PNG/JPG/PDF werden im Browser mit denselben Bausteinen wie der Editor gezeichnet (Aussehen identisch). SVG ist ein eigener Vektor-Export; Schriften werden darin nicht eingebettet. PDF-Seiten sind Rasterbilder in der gewählten Größe. Sehr große Flächen (Kante über 16 384 px oder über 64 Mio. Pixel) lehnt der Dialog ab, weil Browser sie nicht zeichnen können.
 
 **Wichtig:** Der Editor speichert noch nicht (kommt in Etappe f). Beim Verlassen warnt der Browser vor ungespeicherten Änderungen.
 
@@ -81,7 +85,7 @@ Skripte unter `apps/web/e2e/` steuern einen echten Browser (Playwright). Vorauss
 npx playwright install chromium
 # in .env setzen und API neu starten, sonst greift das Rate-Limit der Registrierung:
 #   AUTH_RATE_LIMIT_MAX=1000
-cd apps/web && npm run e2e         # Auth, Dashboard, Editor, Transformationen, Werkzeuge, Inhalte (~8 Min.)
+cd apps/web && npm run e2e         # Auth, Dashboard, Editor, Transformationen, Werkzeuge, Inhalte, Lineale, Export, Vorlagen (~10 Min.)
 npm run e2e:bench                  # Leistungsmessung mit 100/300/1000 Objekten
 ```
 Screenshots landen in `apps/web/e2e/out/`. Mit `E2E_CHROMIUM_PATH` lässt sich ein vorhandener Chromium-Browser verwenden.
