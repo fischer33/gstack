@@ -1,6 +1,6 @@
 # DesignHub
 
-Browserbasierter Grafik-Editor (Vorlagen, Canvas, Export). Stand: **Etappe (c) – Canvas-Editor-Kern** (zusätzlich zu Auth und Dashboard: Elemente hinzufügen, auswählen, verschieben, skalieren, drehen, Textbearbeitung, Zoom/Pan, Undo/Redo, Tastenkürzel).
+Browserbasierter Grafik-Editor (Vorlagen, Canvas, Export). Stand: **Etappe (d) – Toolbar und Panels** (zusätzlich zu Auth, Dashboard und Editor-Kern: Schriften, Farbwähler, Ebenen, Gruppen, Ausrichten, Smart Guides, mehrere Seiten, Vorlagen, Hintergründe, Bildwerkzeuge).
 Architektur und Etappenplan: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Voraussetzungen
@@ -51,6 +51,24 @@ Im Dashboard ein Format oder eine Vorlage anklicken. Dann:
 | Zoom 10–400 % | Strg/Cmd+Mausrad oder Pinch, +/- Tasten, Klick auf den Prozentwert passt ein (Strg/Cmd+0) |
 | Ansicht verschieben | Mausrad, Leertaste+Ziehen oder mittlere Maustaste |
 
+**Etappe (d), Werkzeuge im Überblick**
+
+| Bereich | Was geht |
+|---|---|
+| Seitenleiste | Vorlagen (Format wird angepasst), Elemente (Formen, 24 Icons, 24 Sticker), Text (3 Stile, 6 Schriftkombinationen), Uploads, Hintergrund (Farbe, Verlauf, Bild), Ebenen |
+| Text | 38 Google-Schriften mit Suche, Größe, Farbe, Fett/Kursiv/Unterstrichen, Ausrichtung, Zeilen- und Buchstabenabstand, Schatten, Kontur |
+| Farbwähler | Paletten, Markenfarben (pro Browser gespeichert), Hex, RGB, Farbfeld |
+| Formen | Füllung, Kontur, Konturstärke, Eckenradius; Linien und Pfeile: Farbe und Stärke |
+| Bilder | Helligkeit, Kontrast, Sättigung, Weichzeichnen, Spiegeln, Zuschneiden (Doppelklick oder Werkzeug, Enter beendet), Hintergrund entfernen |
+| Anordnen | Ebenenreihenfolge, Ausrichten (an der Seite oder aneinander), Verteilen, Gruppieren (Strg/Cmd+G), Gruppierung aufheben (Strg/Cmd+Umschalt+G), Position und Größe numerisch |
+| Smart Guides | Einrasten an Seitenmitte, Kanten und Mitten anderer Elemente; mit Alt aus |
+| Ebenenpanel | Reihenfolge per Drag & Drop, ein-/ausblenden, sperren, mehrere wählen |
+| Seiten | unten hinzufügen, duplizieren, löschen, umsortieren (Ziehen oder Pfeile) |
+
+**Hintergrund entfernen einrichten:** API-Schlüssel bei [remove.bg](https://www.remove.bg/api) holen und in `.env` als `BG_REMOVAL_API_KEY` eintragen, dann den Server neu starten. Ohne Schlüssel zeigt der Editor einen Hinweis.
+
+**Schriften und Datenschutz:** Die Schriften kommen von Google Fonts, dabei wird die IP des Nutzers an Google übertragen. Wer das vermeiden will, liefert sie selbst aus (`@fontsource-*`).
+
 **Wichtig:** Der Editor speichert noch nicht (kommt in Etappe f). Beim Verlassen warnt der Browser vor ungespeicherten Änderungen.
 
 ## Ende-zu-Ende-Tests
@@ -62,7 +80,7 @@ Skripte unter `apps/web/e2e/` steuern einen echten Browser (Playwright). Vorauss
 npx playwright install chromium
 # in .env setzen und API neu starten, sonst greift das Rate-Limit der Registrierung:
 #   AUTH_RATE_LIMIT_MAX=1000
-cd apps/web && npm run e2e         # Auth, Dashboard, Editor, Transformationen (~2 Min.)
+cd apps/web && npm run e2e         # Auth, Dashboard, Editor, Transformationen, Werkzeuge, Inhalte (~8 Min.)
 npm run e2e:bench                  # Leistungsmessung mit 100/300/1000 Objekten
 ```
 Screenshots landen in `apps/web/e2e/out/`. Mit `E2E_CHROMIUM_PATH` lässt sich ein vorhandener Chromium-Browser verwenden.
@@ -77,4 +95,4 @@ Screenshots landen in `apps/web/e2e/out/`. Mit `E2E_CHROMIUM_PATH` lässt sich e
 
 - `npm audit` meldet noch Funde in Tailwind 3 (`braces`/`chokidar`, nur Build-Zeit, kein Laufzeitcode). Ein Wechsel auf Tailwind 4 ist für später vorgemerkt.
 - Rate-Limit liegt im Speicher (eine API-Instanz). Hinter einem Proxy muss später `trust proxy` gesetzt werden, sonst teilen sich alle Nutzer eine IP.
-- Der Editor speichert noch nicht und hat noch keine Schrift-/Ebenen-/Ausrichten-Werkzeuge (Etappe d und f). Mobil/Touch ist noch nicht für Gesten (Pinch, Zwei-Finger-Pan) ausgelegt.
+- Der Editor speichert noch nicht (Etappe f). Mobil/Touch ist noch nicht für Gesten (Pinch, Zwei-Finger-Pan) ausgelegt. Bilder liegen bis dahin als Data-URL im Dokument.

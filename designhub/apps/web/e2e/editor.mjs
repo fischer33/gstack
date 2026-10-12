@@ -1,4 +1,4 @@
-import { BASE, OUT, launch, register } from './lib.mjs';
+import { BASE, OUT, addTextKind, launch, openTab, register, setColor } from './lib.mjs';
 const b = await launch();
 const ctx = await b.newContext({ viewport: { width: 1280, height: 800 } });
 const p = await ctx.newPage();
@@ -15,7 +15,7 @@ const wrapBox = async () => p.locator('[data-testid=canvas-wrap]').boundingBox()
 const toScreen = async (x, y) => { const s = await state(), w = await wrapBox(); return { x: w.x + s.pan.x + x * s.zoom, y: w.y + s.pan.y + y * s.zoom }; };
 const centerOf = async (id) => { const e = (await els()).find(x => x.id === id); return toScreen(e.x + e.width / 2, e.y + e.height / 2); };
 const drag = async (from, to, steps = 8) => { await p.mouse.move(from.x, from.y); await p.mouse.down(); await p.mouse.move(to.x, to.y, { steps }); await p.mouse.up(); };
-const add = async (label) => { await p.click('nav[aria-label="Elemente hinzufügen"] >> button[aria-label="' + label + ' hinzufügen"]'); await wait(150); };
+const add = async (label) => { await openTab(p, 'Elemente'); await p.click('section[aria-label=Elemente] button[aria-label="' + label + ' hinzufügen"]'); await wait(150); };
 const lastEl = async () => { const e = await els(); return e[e.length - 1]; };
 
 // ---- Registrieren, Design anlegen ----
@@ -95,8 +95,7 @@ await p.screenshot({ path: OUT + 'c-rotated.png' });
 
 // ---- Rotation zurücksetzen, Text ----
 await p.evaluate((id) => window.__designhub.doc.getState().updateElements([id], { rotation: 0, x: 100, y: 100, width: 300, height: 300 }), rectId);
-await p.click('nav[aria-label="Elemente hinzufügen"] >> button[aria-label="Text hinzufügen"]');
-await p.click('[role=menuitem]:has-text("Überschrift")');
+await addTextKind(p, 'Überschrift');
 await p.waitForSelector('textarea[aria-label="Text bearbeiten"]');
 s = await state();
 ok('Neuer Text öffnet sofort die Bearbeitung', s.editing === s.els[s.els.length - 1].id);
@@ -119,7 +118,7 @@ ok('Klick daneben übernimmt mehrzeiligen Text', s.els.find(x => x.id === textId
 await p.screenshot({ path: OUT + 'c-text.png' });
 // Leerer Text löscht das Element
 await p.keyboard.press('Control+a').catch(() => {});
-await p.click('nav[aria-label="Elemente hinzufügen"] >> button[aria-label="Text hinzufügen"]'); await p.click('[role=menuitem]:has-text("Fließtext")');
+await addTextKind(p, 'Fließtext');
 await p.waitForSelector('textarea'); await p.keyboard.press('Delete'); await p.keyboard.press('Escape'); await wait(250);
 ok('Leer bestätigter Text wird entfernt', (await els()).every(x => x.type !== 'text' || x.text.trim()) && (await els()).filter(x => x.type === 'text').length === 1);
 // Tastenkürzel greifen nicht während des Tippens
@@ -152,7 +151,7 @@ await p.evaluate(() => window.__designhub.ui.getState().clearSelection()); await
 const tl = await toScreen(60, 60), brm = await toScreen(600, 300);
 await drag(tl, brm, 10); await wait(200);
 ok('Aufziehrahmen wählt Elemente darin aus (m1, m2, nicht m3)', (await state()).sel.sort().join() === 'm1,m2');
-await p.mouse.click(1100, 700); await wait(100);
+{ const wbx = await wrapBox(); await p.mouse.click(wbx.x + wbx.width - 20, wbx.y + wbx.height - 20); } await wait(100);
 ok('Klick ins Leere hebt die Auswahl auf', (await state()).sel.length === 0);
 await p.keyboard.press('Control+a'); await wait(100);
 ok('Strg+A wählt alles', (await state()).sel.length === 3);
@@ -178,13 +177,13 @@ ok('Entf löscht die Auswahl', (await els()).length === 4);
 
 // ---- Kontextleiste: Farbe, Deckkraft, Ebenen, Sperren ----
 await p.evaluate(() => window.__designhub.ui.getState().select(['m1'])); await wait(100);
-await p.fill('input[aria-label="Farbe"]', '#ff0000'); await wait(100);
+await setColor(p, 'Füllfarbe', '#ff0000'); await p.keyboard.press('Escape'); await wait(100);
 ok('Farbfeld ändert die Füllung', (await els()).find(x => x.id === 'm1').fill === '#ff0000');
-await p.locator('input[aria-label="Deckkraft"]').fill('40'); await wait(100);
+await p.click('button[aria-label="Transparenz"]'); await p.locator('input[aria-label="Deckkraft"]').fill('40'); await p.keyboard.press('Escape'); await wait(100);
 ok('Deckkraft-Regler', Math.abs((await els()).find(x => x.id === 'm1').opacity - 0.4) < 0.001);
-await p.click('button[aria-label="Ganz nach vorne"]'); await wait(100);
+await p.click('button[aria-label="Anordnen"]'); await p.click('button[aria-label="Ganz nach vorne"]'); await wait(100);
 ok('Ganz nach vorne', (await els()).at(-1).id === 'm1');
-await p.click('button[aria-label="Ganz nach hinten"]'); await wait(100);
+await p.click('button[aria-label="Ganz nach hinten"]'); await p.keyboard.press('Escape'); await wait(100);
 ok('Ganz nach hinten', (await els())[0].id === 'm1');
 await p.click('button[aria-label="Sperren"]'); await wait(100);
 const lockedX = (await els()).find(x => x.id === 'm1').x; const lc = await centerOf('m1');
@@ -218,6 +217,7 @@ ok('Strg+0 passt ein', Math.abs((await state()).zoom - z0) < 0.02);
 
 // ---- Bild ----
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAFElEQVR4nGP4z8Dwn4EIwDiqkL4KAHXaDfGgEiZNAAAAAElFTkSuQmCC', 'base64');
+await openTab(p, 'Uploads');
 await p.setInputFiles('[data-testid=image-input]', { name: 'test.png', mimeType: 'image/png', buffer: png }); await wait(500);
 s = await state(); const img = s.els.at(-1);
 ok('Bild-Upload fügt ein Bild-Element ein', img.type === 'image' && img.src.startsWith('data:image/png') && img.width >= 20 && s.sel[0] === img.id);

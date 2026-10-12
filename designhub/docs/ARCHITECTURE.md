@@ -100,7 +100,33 @@ Schemaänderungen erhöhen `DOCUMENT_VERSION` und bekommen eine Migrationsfunkti
 
 Nachstellen im Browser: `/design/<id>?bench=300` füllt das Design (nur im Speicher) mit Testobjekten.
 
-**Noch nicht im Editor** (kommt in (d)): Gruppieren, Ausrichten/Verteilen, Smart Guides, Ebenenpanel mit Drag-Sortierung, Schrift-/Textstil-Leiste, Bild-Zuschnitt/-Filter/-Spiegeln, Hintergrund-Panel, mehrere Seiten. Bilder liegen bis (f) als Data-URL im Dokument; der S3-Upload folgt mit dem Speichern.
+## 4b. Toolbar, Panels und Werkzeuge (Stand Etappe d)
+
+**Oberfläche:** Links sechs Tabs (Vorlagen, Elemente, Text, Uploads, Hintergrund, Ebenen); die Panels laden erst beim ersten Öffnen (`React.lazy`). Oben die Kontextleiste, die je nach Auswahl Text-, Form-, Icon-, Bild- oder Gruppenwerkzeuge zeigt, dazu allgemeine Funktionen (Transparenz, Position, Anordnen, Gruppieren, Sperren, Duplizieren, Löschen). Unten die Seitenübersicht. Fenster (Farbe, Schrift, Effekte, Position …) sind ein eigenes `Popover`-Bauteil, das per Portal und `position: fixed` gerendert wird, damit scrollende Leisten sie nicht abschneiden. Esc schließt nur das Fenster und hebt die Auswahl nicht zusätzlich auf.
+
+**Smart Guides:** Beim Ziehen rastet die Auswahl (Kanten und Mitte) an der Seite und an anderen Elementen ein, Schwelle 6 Bildschirmpixel (zoomunabhängig); Alt schaltet es ab. `computeSnap` ist eine reine Funktion. Die Linien werden direkt auf Konva-Ebene gezeichnet, nicht über React.
+
+**Gruppen:** Eine Gruppe speichert Kinder mit Koordinaten relativ zur Gruppen-Ecke. Skalieren der Gruppe skaliert die Kinder mit (`scaleElement`); Auflösen rechnet Drehung und Position wieder ein. Kinder bleiben anklickbar, geben Ereignisse aber an den Gruppenknoten weiter.
+
+**Ausrichten/Verteilen:** Reine Funktionen auf den Umschlag-Rechtecken (gedrehte Elemente zählen mit ihrem Umschlag); ein einzelnes Element richtet sich an der Seite aus. Ein Aufruf ist ein Undo-Schritt.
+
+**Ebenenpanel:** Drag-Sortierung per HTML5-Drag-and-Drop. Ziehen einer gewählten Zeile verschiebt die ganze Auswahl als Block. `layerDropIndex` rechnet die Einfügemarke des Panels (vorderstes oben) in einen Index der Dokumentreihenfolge um.
+
+**Mehrere Seiten:** `activePageId` liegt im Dokument-Store, aber nicht in der History. Seitenoperationen (hinzufügen, duplizieren, löschen, verschieben) sind Undo-fähig; nach Undo/Redo fällt eine verschwundene aktive Seite auf die erste zurück. Vorschaubilder entstehen mit `pageToSvg` aus der Seite (400 ms nach der letzten Änderung).
+
+**Text:** 38 Google-Fonts in 5 Kategorien. Eine Schrift wird *vor* der Zuweisung geladen (`ensureFont`, Zeitlimit 2,5 s), damit Konva gleich mit der echten Schrift misst; beim Öffnen eines Designs werden alle benutzten Schriften vorher geladen. Es werden nur aufrechte Schnitte (400/700) angefragt, Kursiv erzeugt der Browser. Zeilen-/Buchstabenabstand, Schatten und Kontur sind Teil des Modells und im SVG-Renderer enthalten. *Datenschutz:* Google Fonts lädt von Google-Servern (die IP des Nutzers wird übertragen). Zum Selbst-Hosten die Schriften über `@fontsource-*` ausliefern.
+
+**Bilder:** Filter (Helligkeit, Kontrast, Sättigung, Weichzeichnen) laufen über Konva-Filter und werden nur gecacht, solange ein Filter aktiv ist. Die Sättigung ist so abgebildet, dass −100 wirklich Grau ergibt (Konva rechnet mit 2^s). Spiegeln passiert am Bild innerhalb des Gruppenknotens. **Zuschneiden** verschiebt Rahmenkanten, ohne zu strecken: `cropByEdges` rechnet die neuen Kanten (im lokalen Rahmen des Bildes) in einen Ausschnitt des Originals um und begrenzt ihn an den Bildgrenzen; das abgedunkelte Gesamtbild hinter dem Ausschnitt zeigt, was ausgeblendet ist.
+
+**Hintergrund entfernen:** `POST /api/images/remove-background` (nur angemeldet, 10 Aufrufe/Minute) reicht PNG/JPEG/WebP als `data:`-URL an remove.bg weiter; der Schlüssel (`BG_REMOVAL_API_KEY`) bleibt auf dem Server. Ohne Schlüssel antwortet die Route mit 501 und der Editor sagt, was einzutragen ist. Der Anbieter steckt hinter der Schnittstelle `BackgroundRemover` und ist austauschbar.
+
+**Icons und Sticker:** Icons sind einzelne Pfade (`d`) in einem 24×24-Raster, keine freie SVG-Quelle: Pfaddaten lassen sich streng prüfen (`isSafePathData`), fremdes SVG nicht. Sticker sind Emoji als Text.
+
+**Vorlagen anwenden:** Das Format wird gleichmäßig angepasst und mittig platziert (`fitPageToSize`); bei belegter Seite fragt der Editor nach. Der Austausch ist ein Undo-Schritt.
+
+**Gelernt (Fehlerklasse):** Konva-Knoten werden von React nur bei *geänderten* Eigenschaften aktualisiert. Endet eine Geste ohne Modelländerung (z. B. begrenzter Zuschnitt), bliebe der Knoten sonst verschoben stehen. Deshalb setzt `resetNodeToModel` die Knoten nach jeder Geste explizit auf den Modellzustand.
+
+**Noch offen:** Dauerhaftes Speichern der Bilder (bis Etappe f als Data-URL im Dokument), Bildfilter im SVG-Export (Etappe e), Touch-Gesten, Gruppen *innerhalb* von Gruppen bearbeiten.
 
 ## 6. Backend
 
