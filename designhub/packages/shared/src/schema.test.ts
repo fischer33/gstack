@@ -66,6 +66,8 @@ describe('parseDesignDocument: Ablehnung', () => {
     for (const s of ['javascript:alert(1)', 'data:image/svg+xml;base64,PHN2Zz4=', 'data:text/html;base64,AAAA', 'http://example.com/a.png', 'file:///etc/passwd', 'data:image/png;base64,%%%']) bad(doc([image(s)]));
     expect(parseDesignDocument(doc([image('data:image/jpeg;base64,/9j/4AAQ')])).ok).toBe(true);
     expect(parseDesignDocument(doc([image('https://cdn.example.com/x.webp')])).ok).toBe(true);
+    expect(parseDesignDocument(doc([image('http://localhost:9000/designhub/u/a.png')])).ok).toBe(true);
+    for (const bad of ['http://example.com/x.png', 'http://localhost.evil.com/x.png', 'http://localhost@evil.com/x.png']) expect(parseDesignDocument(doc([image(bad)])).ok, bad).toBe(false);
   });
 
   it('Icon-Pfade werden streng geprüft', () => {

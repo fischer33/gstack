@@ -16,10 +16,10 @@ const id = z.string().min(1).max(64);
 /** Hex, rgb()/hsl() und Farbnamen (inkl. transparent). Keine Anführungszeichen, Klammern außer in rgb()/hsl(), kein url(). */
 const color = z.string().max(64).regex(/^(#[0-9a-fA-F]{3,8}|(rgb|hsl)a?\(\s*[\d.,%\s/]+\)|[a-zA-Z]{3,24})$/, 'Ungültige Farbe');
 
-/** Nur Bilddaten als data:-URL (kein SVG, kein Skript) oder https. */
+/** Nur Bilddaten als data:-URL (kein SVG, kein Skript), https oder – für die lokale Entwicklung mit eigenem Speicher – http://localhost. */
 const src = z.string().max(LIMITS.srcLength).refine(
-  (v) => /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(v) || /^https:\/\/[^\s"'<>]{1,2000}$/.test(v),
-  'Bildquelle muss ein PNG/JPEG/WebP/GIF als data:-URL oder eine https-Adresse sein',
+  (v) => /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(v) || /^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/)[^\s"'<>]{1,2000}$/.test(v),
+  'Bildquelle muss ein PNG/JPEG/WebP/GIF als data:-URL oder eine https-Adresse sein (lokal auch http://localhost)',
 );
 
 /** Schriftname: keine Zeichen, mit denen man aus CSS/XML ausbrechen könnte. */

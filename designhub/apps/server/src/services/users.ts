@@ -33,4 +33,4 @@ export const prismaUserRepo = (db: PrismaClient): UserRepo => ({
 });
 
 /** Nur diese Felder verlassen den Server. */
-export const publicUser = (u: UserRecord) => ({ id: u.id, email: u.email, name: u.name, avatarUrl: u.avatarUrl });
+export const publicUser = (u: UserRecord) => ({ id: u.id, email: u.email, name: u.name, avatarUrl: u.avatarUrl, hasPassword: u.passwordHash !== null });

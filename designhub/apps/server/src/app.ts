@@ -55,6 +55,7 @@ export function createApp(deps: AppDeps) {
       const fields = Object.fromEntries(err.issues.map((i) => [i.path.join('.'), i.message]));
       return void res.status(400).json({ error: 'validation', fields });
     }
+    if ((err as { type?: string }).type === 'entity.too.large') return void res.status(413).json({ error: 'too_large' });
     console.error(err);
     res.status(500).json({ error: 'internal' });
   };
