@@ -76,6 +76,32 @@ Schemaänderungen erhöhen `DOCUMENT_VERSION` und bekommen eine Migrationsfunkti
 - Google: State und PKCE-Verifier liegen signiert in einem 10-Minuten-Cookie. Konten werden nur über eine von Google **verifizierte** E-Mail verknüpft. Ohne `GOOGLE_CLIENT_ID/SECRET` ist der Button ausgeblendet.
 - Die Auth-Logik hängt an `UserRepo` und `GoogleClient`-Schnittstellen und ist deshalb ohne Datenbank und Netzwerk getestet.
 
+## 4a. Editor-Kern (Stand Etappe c)
+
+**Koordinaten:** Das Modell speichert `x, y` als obere linke Ecke des *unrotierten* Rahmens und dreht um dessen Mitte. Konva-Knoten laufen ohne `offset` (der Transformer arbeitet so zuverlässig); `engine/geometry.ts` rechnet an den Grenzen um (Rendern, Drag-Ende, Transform-Ende). Ellipsen sind in Konva mittig verankert und bilden die einzige Ausnahme. Beide Richtungen sind per Rundreise-Test abgesichert.
+
+**Ablauf einer Interaktion:** Während Ziehen, Skalieren und Drehen arbeitet Konva direkt auf den Knoten (kein React-Render pro Mausbewegung). Erst beim Loslassen schreibt der Editor *einen* Schritt in den Store (`updateEach`). Bei Mehrfachauswahl verschiebt der Konva-Transformer alle gewählten Knoten selbst; der Editor hängt sich nur an `dragend`.
+
+**Store:** `documentStore` (Dokument + Verlauf) und `uiStore` (Auswahl, Zoom, Pan) sind getrennt; Auswahl und Zoom landen nicht in der History. Undo/Redo basiert auf Immer-Patches (Patch + Gegen-Patch je Schritt, max. 200). Schnell aufeinanderfolgende Änderungen mit gleichem `coalesce`-Schlüssel (Pfeiltasten, Farb- und Deckkraft-Regler) werden zu einem Schritt verschmolzen. `silent`-Änderungen (gemessene Texthöhe) erzeugen keinen Undo-Eintrag. Die `revision` zählt jede Änderung und ist die Grundlage für Autosave in Etappe (f).
+
+**Ebenen im Canvas:** (1) Seite, (2) Elemente, (3) Auswahl-Transformer und Aufziehrahmen. Elemente sind `memo`-Komponenten; durch das strukturelle Teilen von Immer rendert eine Änderung nur das betroffene Element neu.
+
+**Textbearbeitung:** Ein `<textarea>` liegt deckungsgleich über dem Text (gleiche Schrift, Größe, Drehung, Zoom). Die Höhe misst Konva selbst und meldet sie ohne Undo-Eintrag zurück.
+
+**Lazy Loading:** Der Editor (inkl. Konva, ~330 kB) ist ein eigener Chunk und lädt erst beim Öffnen eines Designs; das Haupt-Bundle bleibt bei ~290 kB.
+
+**Leistung** (`npm run e2e:bench`, headless Chromium ohne GPU, also eher pessimistisch):
+
+| Objekte | Neuzeichnen der Elemente-Ebene | Bildrate beim Ziehen eines Elements |
+|---|---|---|
+| 100 | 1,6 ms | 60 FPS |
+| 300 | 5 ms | 60 FPS |
+| 1000 | 30 ms | ~52 FPS (p95 33 ms) |
+
+Nachstellen im Browser: `/design/<id>?bench=300` füllt das Design (nur im Speicher) mit Testobjekten.
+
+**Noch nicht im Editor** (kommt in (d)): Gruppieren, Ausrichten/Verteilen, Smart Guides, Ebenenpanel mit Drag-Sortierung, Schrift-/Textstil-Leiste, Bild-Zuschnitt/-Filter/-Spiegeln, Hintergrund-Panel, mehrere Seiten. Bilder liegen bis (f) als Data-URL im Dokument; der S3-Upload folgt mit dem Speichern.
+
 ## 6. Backend
 
 REST unter `/api`: `auth/*`, `designs` (CRUD, Ordner, Papierkorb, Duplizieren), `templates` (nur lesen), `assets` (Presigned-Upload), `share/:token`. Teilen: `ShareLink` mit Token und Rolle VIEW/EDIT; Zugriff über Token wird serverseitig gegen die Rolle geprüft. Zod validiert jeden Request. Hintergrund entfernen läuft über den Server (API-Key bleibt serverseitig).
@@ -104,7 +130,7 @@ Vorschaubilder sind vorerst SVG-Data-URLs aus `pageToSvg` (`packages/shared`), d
 |---|---|---|
 | (a) ✅ | Setup, Auth (E-Mail + Google), Landing/Login, Theme | Registrieren, Einloggen, Logout im Browser |
 | (b) ✅ | Dashboard, Format-Schnellauswahl, „Zuletzt bearbeitet“, Meine Designs, Ordner, Papierkorb | Design anlegen und in der Liste sehen |
-| (c) | Editor-Kern: Canvas, Zoom/Pan, Auswahl, Transformer, Formen/Text/Bild, Undo/Redo, Tastenkürzel, Store-Tests | 100+ Objekte flüssig, Undo/Redo getestet |
+| (c) ✅ | Editor-Kern: Canvas, Zoom/Pan, Auswahl, Transformer, Formen/Text/Bild, Undo/Redo, Tastenkürzel, Store-Tests | 100+ Objekte flüssig, Undo/Redo getestet |
 | (d) | Toolbar, Panels, Ebenen (Drag-Sortierung), Gruppieren, Ausrichten, Smart Guides, Bildfilter/Crop, Hintergründe, mehrseitig | Alle Muss-Funktionen bedienbar |
 | (e) | 20+ Vorlagen, Export PNG/JPG/SVG/PDF | Vorlage anwenden und exportieren |
 | (f) | Autosave, Speichern in DB, Teilen per Link, Einstellungen/Profil | Reload behält Design, Link öffnet Ansicht |

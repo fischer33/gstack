@@ -3,3 +3,4 @@ dist
 .env
 *.log
 .DS_Store
+apps/web/e2e/out

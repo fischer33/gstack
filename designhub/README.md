@@ -1,6 +1,6 @@
 # DesignHub
 
-Browserbasierter Grafik-Editor (Vorlagen, Canvas, Export). Stand: **Etappe (b) – Dashboard** (zusätzlich zu Auth: Formate, Vorlagen-Galerie, Meine Designs, Ordner, Papierkorb, Suche).
+Browserbasierter Grafik-Editor (Vorlagen, Canvas, Export). Stand: **Etappe (c) – Canvas-Editor-Kern** (zusätzlich zu Auth und Dashboard: Elemente hinzufügen, auswählen, verschieben, skalieren, drehen, Textbearbeitung, Zoom/Pan, Undo/Redo, Tastenkürzel).
 Architektur und Etappenplan: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Voraussetzungen
@@ -35,6 +35,38 @@ Manuell im Browser (`http://localhost:5173`):
 6. „Meine Designs“: im ⋯-Menü einer Karte umbenennen, duplizieren, in einen Ordner verschieben, in den Papierkorb legen. Ordner über das Ordner-Symbol in der Seitenleiste anlegen.
 7. Papierkorb: wiederherstellen, endgültig löschen, leeren. Oben im Suchfeld nach Titel, Kategorie oder Stichwort suchen.
 
+## Editor ausprobieren
+
+Im Dashboard ein Format oder eine Vorlage anklicken. Dann:
+
+| Aktion | So geht's |
+|---|---|
+| Element hinzufügen | links Text, Rechteck, Kreis, Linie, Pfeil, Stern, Bild (auch per Drag & Drop oder Einfügen) |
+| Auswählen | Klick; Umschalt+Klick für mehrere; Rahmen aufziehen; Strg/Cmd+A für alles |
+| Verschieben, Skalieren, Drehen | ziehen; Eckgriffe skalieren, der Punkt oben dreht (rastet bei 45°) |
+| Text bearbeiten | Doppelklick oder Enter; Esc oder Klick daneben übernimmt |
+| Rückgängig / Wiederholen | Strg/Cmd+Z, Strg/Cmd+Umschalt+Z (oder +Y) |
+| Kopieren, Einfügen, Duplizieren, Löschen | Strg/Cmd+C, +V, +D, Entf |
+| Feinschieben | Pfeiltasten (1 px), mit Umschalt 10 px |
+| Zoom 10–400 % | Strg/Cmd+Mausrad oder Pinch, +/- Tasten, Klick auf den Prozentwert passt ein (Strg/Cmd+0) |
+| Ansicht verschieben | Mausrad, Leertaste+Ziehen oder mittlere Maustaste |
+
+**Wichtig:** Der Editor speichert noch nicht (kommt in Etappe f). Beim Verlassen warnt der Browser vor ungespeicherten Änderungen.
+
+## Ende-zu-Ende-Tests
+
+Skripte unter `apps/web/e2e/` steuern einen echten Browser (Playwright). Voraussetzung: `npm run dev` läuft, die Datenbank ist migriert und geseedet.
+
+```bash
+# einmalig
+npx playwright install chromium
+# in .env setzen und API neu starten, sonst greift das Rate-Limit der Registrierung:
+#   AUTH_RATE_LIMIT_MAX=1000
+cd apps/web && npm run e2e         # Auth, Dashboard, Editor, Transformationen (~2 Min.)
+npm run e2e:bench                  # Leistungsmessung mit 100/300/1000 Objekten
+```
+Screenshots landen in `apps/web/e2e/out/`. Mit `E2E_CHROMIUM_PATH` lässt sich ein vorhandener Chromium-Browser verwenden.
+
 ## Google-Login einrichten (optional)
 
 1. Google Cloud Console → APIs & Dienste → Anmeldedaten → OAuth-Client-ID (Typ „Webanwendung“).
@@ -45,4 +77,4 @@ Manuell im Browser (`http://localhost:5173`):
 
 - `npm audit` meldet noch Funde in Tailwind 3 (`braces`/`chokidar`, nur Build-Zeit, kein Laufzeitcode). Ein Wechsel auf Tailwind 4 ist für später vorgemerkt.
 - Rate-Limit liegt im Speicher (eine API-Instanz). Hinter einem Proxy muss später `trust proxy` gesetzt werden, sonst teilen sich alle Nutzer eine IP.
-- Der Editor (`/design/:id`) ist noch ein Platzhalter; er kommt in Etappe (c).
+- Der Editor speichert noch nicht und hat noch keine Schrift-/Ebenen-/Ausrichten-Werkzeuge (Etappe d und f). Mobil/Touch ist noch nicht für Gesten (Pinch, Zwei-Finger-Pan) ausgelegt.
