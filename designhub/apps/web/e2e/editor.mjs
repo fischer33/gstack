@@ -225,10 +225,13 @@ await p.setInputFiles('[data-testid=image-input]', { name: 'x.txt', mimeType: 't
 ok('Keine Bilddatei: Fehlermeldung, kein Element', await p.locator('[role=alert]').count() === 1 && (await els()).filter(x => x.type === 'image').length === 1);
 await p.screenshot({ path: OUT + 'c-image.png' });
 
-// ---- Warnung vor Datenverlust ----
+// ---- Zurück speichert statt zu warnen ----
 let confirmShown = false; p.once('dialog', d => { confirmShown = true; d.dismiss(); });
-await p.click('a[aria-label="Zurück zum Dashboard"]'); await wait(300);
-ok('Zurück-Pfeil warnt bei ungespeicherten Änderungen', confirmShown && p.url().includes('/design/'));
+const designUrl = p.url();
+await p.click('a[aria-label="Zurück zum Dashboard"]'); await p.waitForURL('**/app', { timeout: 8000 });
+const saved = await p.evaluate(async (id) => (await (await fetch('/api/designs/' + id)).json()).pages[0].elements.length, designUrl.split('/').pop());
+ok('Zurück-Pfeil speichert zuerst und fragt nicht nach', !confirmShown && saved >= 1, String(saved));
+await p.goto(designUrl); await p.waitForSelector('canvas'); await wait(600);
 
 // ---- Fremdes Design ----
 const ctx2 = await b.newContext(); const p2 = await ctx2.newPage();
