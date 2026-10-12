@@ -1,0 +1,124 @@
+{
+  "id": "tpl-j-01-quote",
+  "title": "Zitat auf Verlauf",
+  "category": "Social Media",
+  "tags": [
+    "zitat",
+    "verlauf",
+    "motivation"
+  ],
+  "width": 1080,
+  "height": 1080,
+  "data": {
+    "version": 1,
+    "width": 1080,
+    "height": 1080,
+    "pages": [
+      {
+        "id": "p1",
+        "background": {
+          "type": "gradient",
+          "angle": 135,
+          "stops": [
+            {
+              "offset": 0,
+              "color": "#3a1c71"
+            },
+            {
+              "offset": 0.5,
+              "color": "#d76d77"
+            },
+            {
+              "offset": 1,
+              "color": "#ffaf7b"
+            }
+          ]
+        },
+        "elements": [
+          {
+            "id": "e1",
+            "x": 90,
+            "y": 80,
+            "width": 200,
+            "height": 360,
+            "rotation": 0,
+            "opacity": 0.35,
+            "locked": false,
+            "visible": true,
+            "type": "text",
+            "text": "„",
+            "fontFamily": "Playfair Display",
+            "fontSize": 360,
+            "fontWeight": 700,
+            "italic": false,
+            "underline": false,
+            "align": "left",
+            "fill": "#ffffff",
+            "lineHeight": 1,
+            "letterSpacing": 0
+          },
+          {
+            "id": "e2",
+            "x": 100,
+            "y": 330,
+            "width": 880,
+            "height": 85,
+            "rotation": 0,
+            "opacity": 1,
+            "locked": false,
+            "visible": true,
+            "type": "text",
+            "text": "Mut ist nicht die Abwesenheit von Angst, sondern der Entschluss, dass etwas anderes wichtiger ist.",
+            "fontFamily": "Playfair Display",
+            "fontSize": 68,
+            "fontWeight": 700,
+            "italic": false,
+            "underline": false,
+            "align": "left",
+            "fill": "#ffffff",
+            "lineHeight": 1.25,
+            "letterSpacing": 0
+          },
+          {
+            "id": "e3",
+            "x": 100,
+            "y": 850,
+            "width": 160,
+            "height": 15,
+            "rotation": 0,
+            "opacity": 1,
+            "locked": false,
+            "visible": true,
+            "type": "shape",
+            "kind": "line",
+            "fill": "transparent",
+            "stroke": "#ffffff",
+            "strokeWidth": 5
+          },
+          {
+            "id": "e4",
+            "x": 100,
+            "y": 890,
+            "width": 880,
+            "height": 36,
+            "rotation": 0,
+            "opacity": 1,
+            "locked": false,
+            "visible": true,
+            "type": "text",
+            "text": "AMBROSE REDMOON",
+            "fontFamily": "Inter",
+            "fontSize": 30,
+            "fontWeight": 700,
+            "italic": false,
+            "underline": false,
+            "align": "left",
+            "fill": "#ffffff",
+            "lineHeight": 1.2,
+            "letterSpacing": 6
+          }
+        ]
+      }
+    ]
+  }
+}

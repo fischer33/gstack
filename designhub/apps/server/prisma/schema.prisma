@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String? // null bei reinem Google-Login
+  googleId     String?  @unique
+  name         String?
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  designs      Design[]
+  assets       Asset[]
+  folders      Folder[]
+}
+
+model Folder {
+  id       String   @id @default(cuid())
+  name     String
+  ownerId  String
+  owner    User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  parentId String?
+  parent   Folder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children Folder[] @relation("FolderTree")
+  designs  Design[]
+
+  @@index([ownerId])
+}
+
+model Design {
+  id         String      @id @default(cuid())
+  title      String      @default("Unbenanntes Design")
+  width      Int
+  height     Int
+  /// DesignDocument.pages (siehe packages/shared/src/document.ts)
+  pages      Json
+  thumbnail  String?
+  /// Optimistic Locking für Autosave: Client sendet erwartete Version
+  version    Int         @default(1)
+  ownerId    String
+  owner      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  folderId   String?
+  folder     Folder?     @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  /// Papierkorb: gesetzt = gelöscht (endgültig nach 30 Tagen)
+  deletedAt  DateTime?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  shareLinks ShareLink[]
+
+  @@index([ownerId, deletedAt, updatedAt])
+}
+
+model Template {
+  id        String   @id @default(cuid())
+  title     String
+  category  String
+  tags      String[]
+  width     Int
+  height    Int
+  data      Json
+  thumbnail String?
+  createdAt DateTime @default(now())
+
+  @@index([category])
+}
+
+enum AssetType {
+  IMAGE
+  EXPORT
+}
+
+model Asset {
+  id        String    @id @default(cuid())
+  url       String
+  key       String // S3-Objektschlüssel
+  type      AssetType @default(IMAGE)
+  mime      String
+  size      Int
+  ownerId   String
+  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@index([ownerId, type])
+}
+
+enum ShareRole {
+  VIEW
+  EDIT
+}
+
+model ShareLink {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  designId  String
+  design    Design    @relation(fields: [designId], references: [id], onDelete: Cascade)
+  role      ShareRole @default(VIEW)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+}
