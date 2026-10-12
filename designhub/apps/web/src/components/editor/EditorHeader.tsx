@@ -1,4 +1,5 @@
-import { ArrowLeft, Redo2, Ruler, Undo2, ZoomIn, ZoomOut } from 'lucide-react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { ArrowLeft, Download, Redo2, Ruler, Undo2, ZoomIn, ZoomOut } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Logo } from '@/components/Logo';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -7,6 +8,8 @@ import { Popover } from '@/components/ui/popover';
 import { fitToView, zoomBy } from '@/editor/engine/viewActions';
 import { canRedo, canUndo, useDocumentStore } from '@/editor/store/documentStore';
 import { useUiStore } from '@/editor/store/uiStore';
+
+const ExportDialog = lazy(() => import('./ExportDialog'));
 
 export const UNSAVED_WARNING = 'Du hast Änderungen, die noch nicht gespeichert werden können. Trotzdem verlassen?';
 
@@ -20,6 +23,15 @@ export function EditorHeader({ title }: { title: string }) {
   const zoom = useUiStore((s) => s.zoom);
   const rulers = useUiStore((s) => s.rulers);
   const guideCount = useUiStore((s) => s.guides.length);
+  const [exportOpen, setExportOpen] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'e') { e.preventDefault(); setExportOpen(true); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Speichern kommt in Etappe (f). Bis dahin warnen wir, bevor Änderungen verloren gehen.
   const back = (e: React.MouseEvent) => {
@@ -51,7 +63,9 @@ export function EditorHeader({ title }: { title: string }) {
           </div>
         </Popover>
         <span className="ml-1 hidden sm:block"><ThemeToggle /></span>
+        <Button size="sm" onClick={() => setExportOpen(true)} className="ml-1" data-testid="export-open" title="Herunterladen (Strg+Umschalt+E)"><Download className="mr-1.5 h-4 w-4" /><span className="hidden sm:inline">Herunterladen</span><span className="sr-only sm:hidden">Herunterladen</span></Button>
       </div>
+      {exportOpen && <Suspense fallback={null}><ExportDialog open onClose={() => setExportOpen(false)} title={title} /></Suspense>}
     </header>
   );
 }

@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "e2e": "node e2e/auth.mjs && node e2e/dashboard.mjs && node e2e/editor.mjs && node e2e/editor-transforms.mjs && node e2e/editor-tools.mjs && node e2e/editor-content.mjs && node e2e/editor-rulers.mjs",
+    "e2e": "node e2e/auth.mjs && node e2e/dashboard.mjs && node e2e/editor.mjs && node e2e/editor-transforms.mjs && node e2e/editor-tools.mjs && node e2e/editor-content.mjs && node e2e/editor-rulers.mjs && node e2e/export.mjs",
     "e2e:bench": "node e2e/bench.mjs"
   },
   "dependencies": {
