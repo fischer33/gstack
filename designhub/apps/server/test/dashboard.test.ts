@@ -206,6 +206,12 @@ describe.skipIf(!dbUp)('Dashboard-API (mit Datenbank)', () => {
       expect(all[0].data).toBeUndefined(); // Rohdaten bleiben draußen
       expect((await a.get(`/api/templates?category=${CATEGORY}&q=ALPHA`)).body.templates).toHaveLength(2);
       expect((await a.get(`/api/templates?category=${CATEGORY}&q=nichts-davon`)).body.templates).toHaveLength(0);
+      const detail = await a.get(`/api/templates/tpl-${RUN}-1`);
+      expect(detail.status).toBe(200);
+      expect(detail.body).toMatchObject({ id: `tpl-${RUN}-1`, width: 800, height: 600, category: CATEGORY });
+      expect(detail.body.data.pages[0].background).toEqual({ type: 'solid', color: '#123456' });
+      expect(detail.body.thumbnail).toBeUndefined();
+      expect((await a.get('/api/templates/gibt-es-nicht')).status).toBe(404);
       const cats = (await a.get('/api/templates/categories')).body.categories;
       expect(cats.find((c: { name: string }) => c.name === CATEGORY)).toEqual({ name: CATEGORY, count: 2 });
     });

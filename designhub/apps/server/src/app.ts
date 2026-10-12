@@ -9,12 +9,14 @@ import { requireAuth } from './middleware/requireAuth';
 import { authRouter } from './routes/auth';
 import { designsRouter } from './routes/designs';
 import { foldersRouter } from './routes/folders';
+import { imagesRouter } from './routes/images';
 import { templatesRouter } from './routes/templates';
+import type { BackgroundRemover } from './services/backgroundRemoval';
 import type { GoogleClient } from './services/google';
 import type { UserRepo } from './services/users';
 
 /** `db` ist optional, damit die Auth-Tests ohne Datenbank laufen; ohne `db` gibt es keine Daten-Routen. */
-export interface AppDeps { env: Env; users: UserRepo; google: GoogleClient | null; db?: PrismaClient }
+export interface AppDeps { env: Env; users: UserRepo; google: GoogleClient | null; db?: PrismaClient; remover?: BackgroundRemover | null }
 
 /** Fabrik statt Singleton: Tests übergeben In-Memory-Repo und Google-Stub. */
 export function createApp(deps: AppDeps) {
@@ -23,7 +25,8 @@ export function createApp(deps: AppDeps) {
   app.use(cors({ origin: deps.env.WEB_ORIGIN, credentials: true }));
   app.use(cookieParser());
   // Designs sind große JSON-Dokumente; Uploads laufen später per Presigned-URL direkt zu S3.
-  app.use(express.json({ limit: '10mb' }));
+  // 15 MB: ein 10-MB-Bild als Base64 ist ~13,4 MB groß (Hintergrund entfernen).
+  app.use(express.json({ limit: '15mb' }));
   app.use(originCheck(deps.env));
 
   // `db` zeigt, ob die Datenbank antwortet. Das Frontend nutzt es, um bei Server-Fehlern die Ursache zu nennen.
@@ -39,6 +42,7 @@ export function createApp(deps: AppDeps) {
     app.use('/api/designs', guard, designsRouter(deps.db));
     app.use('/api/folders', guard, foldersRouter(deps.db));
     app.use('/api/templates', guard, templatesRouter(deps.db));
+    app.use('/api/images', guard, imagesRouter(deps.remover ?? null));
   }
 
   const onError: ErrorRequestHandler = (err, _req, res, _next) => {

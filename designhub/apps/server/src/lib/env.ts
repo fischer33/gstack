@@ -11,6 +11,8 @@ const schema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET muss mindestens 32 Zeichen lang sein'),
   /** Login/Registrierung: Versuche pro 15 Minuten und IP. Für Ende-zu-Ende-Tests erhöhen. */
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(10),
+  /** remove.bg-Schlüssel für „Hintergrund entfernen“; ohne Schlüssel antwortet die Route mit 501. */
+  BG_REMOVAL_API_KEY: optional,
   GOOGLE_CLIENT_ID: optional,
   GOOGLE_CLIENT_SECRET: optional,
   GOOGLE_REDIRECT_URI: z.string().url().default('http://localhost:5173/api/auth/google/callback'),
