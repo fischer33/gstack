@@ -8,6 +8,7 @@
     "build": "npm run build -w @designhub/web && npm run build -w @designhub/server",
     "test": "npm run test -w @designhub/shared -w @designhub/web -w @designhub/server --if-present",
     "typecheck": "npm run typecheck -w @designhub/shared -w @designhub/web -w @designhub/server --if-present",
+    "postinstall": "npm run db:generate -w @designhub/server",
     "db:up": "docker compose up -d",
     "db:migrate": "npm run db:migrate -w @designhub/server",
     "db:seed": "npm run db:seed -w @designhub/server"

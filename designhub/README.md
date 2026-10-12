@@ -10,12 +10,16 @@ Node 20+, Docker (für Postgres und RustFS (S3)).
 
 ```bash
 cp .env.example .env          # danach JWT_SECRET ersetzen: openssl rand -hex 32
-npm install
+npm install                   # erzeugt dabei auch den Prisma-Client (postinstall)
 npm run db:up                 # Postgres :5432, RustFS (S3) :9000 (Konsole :9001)
 npm run db:migrate            # legt die Tabellen an
 npm run db:seed               # 35 Vorlagen einspielen
 npm run dev                   # Web http://localhost:5173, API http://localhost:4000
 ```
+
+Docker muss laufen (Docker Desktop starten, bei Colima: `colima start`).
+
+Sollte nach `npm install` die Meldung „@prisma/client did not initialize yet“ erscheinen (neuere npm-Versionen blockieren Installationsskripte), einmal `npm run db:generate -w @designhub/server` ausführen.
 
 Ohne Docker: eine eigene PostgreSQL-16-Instanz genügt. Lege Benutzer `designhub` (Passwort `designhub`) und Datenbank `designhub` an oder passe `DATABASE_URL` in `.env` an.
 
