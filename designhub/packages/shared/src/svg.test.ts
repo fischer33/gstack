@@ -51,11 +51,30 @@ describe('pageToSvg', () => {
     expect(out.match(/points="([^"]+)"/)![1].split(' ')).toHaveLength(12);
   });
 
-  it('Gruppen rendern ihre Kinder, Icons werden (noch) nicht gerendert', () => {
+  it('Gruppen rendern ihre Kinder', () => {
     const group = { ...base, id: 'g', type: 'group' as const, children: [rect()] };
     expect(svg(page([group]))).toContain('<rect width="100"');
-    const icon = { ...base, id: 'i', type: 'icon' as const, svg: '<script/>', fill: '#000' };
-    expect(svg(page([icon]))).not.toContain('script');
+  });
+
+  it('Icons: sichere Pfaddaten werden skaliert ausgegeben, unsichere verworfen', () => {
+    const icon = { ...base, id: 'i', type: 'icon' as const, path: 'M0 0L24 0L12 24Z', viewBox: 24, fill: '#f00' };
+    expect(svg(page([icon]))).toContain('<path d="M0 0L24 0L12 24Z" transform="scale(4.17 2.08)" fill="#f00"/>');
+    for (const bad of ['M0 0"/><script>alert(1)</script>', 'url(javascript:x)', '']) {
+      expect(svg(page([{ ...icon, path: bad }]))).not.toContain('<path');
+    }
+  });
+
+  it('Text mit Kontur und Schatten', () => {
+    const out = svg(page([text({ stroke: '#f00', strokeWidth: 3, shadow: { color: '#000', blur: 8, offsetX: 2, offsetY: 4, opacity: 0.5 } })]));
+    expect(out).toContain('stroke="#f00" stroke-width="3" paint-order="stroke"');
+    expect(out).toContain('<feDropShadow dx="2" dy="4" stdDeviation="4"');
+    expect(out).toMatch(/filter="url\(#s\d+\)"/);
+  });
+
+  it('Bild mit Zuschnitt zeigt nur den Ausschnitt', () => {
+    const img = { ...base, id: 'im', type: 'image' as const, src: 'data:image/png;base64,AAAA', flipX: false, flipY: false, filters: { brightness: 0, contrast: 0, saturation: 0, blur: 0 }, naturalWidth: 800, naturalHeight: 600, crop: { x: 100, y: 50, width: 400, height: 300 } };
+    expect(svg(page([img]))).toContain('viewBox="100 50 400 300"');
+    expect(svg(page([{ ...img, crop: undefined }]))).not.toContain('viewBox="100');
   });
 
   it('svgToDataUrl ist Base64 und verträgt Umlaute', () => {

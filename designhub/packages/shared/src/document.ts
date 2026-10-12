@@ -59,7 +59,10 @@ export interface ImageFilters { brightness: number; contrast: number; saturation
 export interface ImageElement extends BaseElement {
   type: 'image';
   src: string;
-  /** Zuschnitt in Pixeln des Quellbilds */
+  /** Originalgröße des Quellbilds in Pixeln (Grundlage für den Zuschnitt) */
+  naturalWidth?: number;
+  naturalHeight?: number;
+  /** Sichtbarer Ausschnitt in Pixeln des Quellbilds; ohne Angabe das ganze Bild */
   crop?: { x: number; y: number; width: number; height: number };
   flipX: boolean;
   flipY: boolean;
@@ -67,12 +70,20 @@ export interface ImageElement extends BaseElement {
   cornerRadius?: number;
 }
 
-/** SVG-Icon oder Sticker: Pfaddaten bzw. SVG-Quelle, einfärbbar. */
+/**
+ * Icon: ein einzelner Pfad (`d`-Attribut) in einem quadratischen Koordinatensystem der Kantenlänge `viewBox`.
+ * Bewusst keine freie SVG-Quelle: Pfaddaten lassen sich streng prüfen (`isSafePathData`), fremdes SVG nicht.
+ * Sticker sind Emoji-Textelemente.
+ */
 export interface IconElement extends BaseElement {
   type: 'icon';
-  svg: string;
+  path: string;
+  viewBox: number;
   fill: string;
 }
+
+/** Nur Pfadbefehle, Zahlen und Trennzeichen. Alles andere (Tags, Skripte, Attribute) wird abgelehnt. */
+export const isSafePathData = (d: string) => d.length > 0 && d.length <= 4000 && /^[MmLlHhVvCcSsQqTtAaZz0-9eE.,\s+-]+$/.test(d);
 
 export interface GroupElement extends BaseElement {
   type: 'group';

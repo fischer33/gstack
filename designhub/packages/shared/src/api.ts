@@ -24,6 +24,9 @@ export interface TemplateSummary {
   thumbnail: string;
 }
 
+/** Vollständige Vorlage inkl. Inhalt (für „Vorlage anwenden“) */
+export interface TemplateDetail extends Omit<TemplateSummary, 'thumbnail'> { data: import('./document').DesignDocument }
+
 export interface TemplateCategory { name: string; count: number }
 
 /** Papierkorb-Einträge werden nach dieser Zeit endgültig gelöscht. */

@@ -1,11 +1,11 @@
-import type { Background, Element, Page } from './document';
+import { isSafePathData, type Background, type Element, type Page } from './document';
 
 /**
  * Rendert eine Seite als SVG-String. Rein funktional, ohne DOM, damit es auf Server (Vorschaubilder)
  * und Client (später: SVG-Export) identisch läuft.
  *
- * Bewusst noch nicht enthalten: Bildzuschnitt/-filter, Icons, Text-Schatten und -Kontur. Das kommt mit dem
- * Export in Etappe (e). Zeilenumbrüche im Text sind eine Schätzung (feste Zeichenbreite), kein exaktes Layout.
+ * Bewusst noch nicht enthalten: Bildfilter (kommen mit dem Export in Etappe e). Zeilenumbrüche im Text sind eine
+ * Schätzung (feste Zeichenbreite), kein exaktes Layout.
  */
 export function pageToSvg(size: { width: number; height: number }, page: Page): string {
   const { width, height } = size;
@@ -71,7 +71,14 @@ function inner(el: Element, defs: string[]): string {
       const x = el.align === 'center' ? w / 2 : el.align === 'right' ? w : 0;
       const lines = wrap(el.text, w, el.fontSize, el.letterSpacing);
       const spans = lines.map((l, i) => `<tspan x="${num(x)}" y="${num(el.fontSize * 0.9 + i * el.fontSize * el.lineHeight)}">${esc(l)}</tspan>`).join('');
-      return `<text font-family="${esc(el.fontFamily)}, sans-serif" font-size="${num(el.fontSize)}" font-weight="${el.fontWeight}"` +
+      let filter = '';
+      if (el.shadow) {
+        const id = `s${++uid}`;
+        defs.push(`<filter id="${id}" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="${num(el.shadow.offsetX)}" dy="${num(el.shadow.offsetY)}" stdDeviation="${num(el.shadow.blur / 2)}" flood-color="${esc(el.shadow.color)}" flood-opacity="${num(el.shadow.opacity)}"/></filter>`);
+        filter = ` filter="url(#${id})"`;
+      }
+      const outline = el.stroke && (el.strokeWidth ?? 0) > 0 ? ` stroke="${esc(el.stroke)}" stroke-width="${num(el.strokeWidth!)}" paint-order="stroke" stroke-linejoin="round"` : '';
+      return `<text${filter}${outline} font-family="${esc(el.fontFamily)}, sans-serif" font-size="${num(el.fontSize)}" font-weight="${el.fontWeight}"` +
         (el.italic ? ' font-style="italic"' : '') + (el.underline ? ' text-decoration="underline"' : '') +
         (el.letterSpacing ? ` letter-spacing="${num(el.letterSpacing)}"` : '') + ` fill="${esc(el.fill)}" text-anchor="${anchor}" xml:space="preserve">${spans}</text>`;
     }
@@ -79,10 +86,18 @@ function inner(el: Element, defs: string[]): string {
       const id = `c${++uid}`;
       const clip = el.cornerRadius ? (defs.push(`<clipPath id="${id}"><rect width="${num(w)}" height="${num(h)}" rx="${num(el.cornerRadius)}"/></clipPath>`), ` clip-path="url(#${id})"`) : '';
       const flip = el.flipX || el.flipY ? ` transform="translate(${el.flipX ? num(w) : 0} ${el.flipY ? num(h) : 0}) scale(${el.flipX ? -1 : 1} ${el.flipY ? -1 : 1})"` : '';
-      return `<g${clip}><image href="${esc(el.src)}" width="${num(w)}" height="${num(h)}" preserveAspectRatio="xMidYMid slice"${flip}/></g>`;
+      const c = el.crop, nw = el.naturalWidth, nh = el.naturalHeight;
+      // Zuschnitt: das ganze Bild in Originalgröße in einem Ausschnitt-Fenster (viewBox) zeigen
+      const picture = c && nw && nh
+        ? `<svg width="${num(w)}" height="${num(h)}" viewBox="${num(c.x)} ${num(c.y)} ${num(c.width)} ${num(c.height)}" preserveAspectRatio="none"><image href="${esc(el.src)}" width="${num(nw)}" height="${num(nh)}"/></svg>`
+        : `<image href="${esc(el.src)}" width="${num(w)}" height="${num(h)}" preserveAspectRatio="xMidYMid slice"/>`;
+      return `<g${clip}><g${flip}>${picture}</g></g>`;
     }
     case 'group': return el.children.map((c) => render(c, defs)).join('');
-    case 'icon': return ''; // Icons enthalten fremdes SVG; erst mit Sanitizing (Etappe d/e) rendern.
+    case 'icon': {
+      if (!isSafePathData(el.path) || !(el.viewBox > 0)) return ''; // nur geprüfte Pfaddaten werden ausgegeben
+      return `<path d="${esc(el.path)}" transform="scale(${num(w / el.viewBox)} ${num(h / el.viewBox)})" fill="${esc(el.fill)}"/>`;
+    }
   }
 }
 
