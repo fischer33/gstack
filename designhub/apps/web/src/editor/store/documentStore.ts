@@ -66,6 +66,8 @@ interface DocumentState {
   movePage(id: string, toIndex: number): void;
   /** Ersetzt Inhalt und Hintergrund der aktiven Seite (z. B. beim Anwenden einer Vorlage). */
   replaceActivePage(page: Pick<Page, 'background' | 'elements'>): void;
+  /** Mehrseitige Vorlage: erste Seite ersetzt die aktive, die übrigen folgen direkt dahinter (ein Undo-Schritt). */
+  applyTemplatePages(pages: Pick<Page, 'background' | 'elements'>[]): void;
 }
 
 const pageOf = (doc: DesignDocument, id: string | null): Page | undefined => doc.pages.find((p) => p.id === id) ?? doc.pages[0];
@@ -249,6 +251,19 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     get().mutate((d) => {
       const p = pageOf(d, get().activePageId);
       if (p) { p.background = next.background; p.elements = next.elements as Element[]; }
+    });
+  },
+
+  applyTemplatePages(pages) {
+    const [first, ...rest] = pages;
+    if (!first) return;
+    get().mutate((d) => {
+      const at = d.pages.findIndex((x) => x.id === get().activePageId);
+      const p = d.pages[at];
+      if (!p) return;
+      p.background = first.background;
+      p.elements = first.elements as Element[];
+      d.pages.splice(at + 1, 0, ...rest.map((r) => ({ id: newId(), background: r.background, elements: r.elements as Element[] })));
     });
   },
 }));

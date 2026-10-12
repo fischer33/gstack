@@ -314,4 +314,20 @@ describe('Seiten', () => {
     s().undo();
     expect(order()).toBe('a');
   });
+  it('applyTemplatePages: erste Seite ersetzt die aktive, weitere folgen dahinter – ein Undo-Schritt', () => {
+    s().addElement(rect('a'));
+    const firstId = s().activePageId;
+    const past = s().past.length;
+    const bg = (c: string) => ({ type: 'solid' as const, color: c });
+    s().applyTemplatePages([{ background: bg('#111111'), elements: [rect('x')] }, { background: bg('#222222'), elements: [rect('y')] }, { background: bg('#333333'), elements: [rect('z')] }]);
+    const pages = s().doc!.pages;
+    expect(s().past.length).toBe(past + 1);
+    expect(pages.map((p) => p.elements.map((e) => e.id).join())).toEqual(['x', 'y', 'z']);
+    expect(pages[0]!.id).toBe(firstId);
+    expect(new Set(pages.map((p) => p.id)).size).toBe(3);
+    expect(s().activePageId).toBe(firstId);
+    s().undo();
+    expect(s().doc!.pages).toHaveLength(1);
+    expect(order()).toBe('a');
+  });
 });

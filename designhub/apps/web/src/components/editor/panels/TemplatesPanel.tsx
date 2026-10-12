@@ -13,12 +13,16 @@ import { Chip } from './panelUi';
 /** Vorlage auf die aktive Seite anwenden: Format wird gleichmäßig angepasst, Schriften werden vorher geladen. */
 async function applyTemplate(id: string, doc: DesignDocument) {
   const t = await api<TemplateDetail>(`/templates/${id}`);
-  const src = t.data.pages[0];
-  if (!src) throw new Error('empty');
-  await ensureFonts(fontsOf(src.elements));
-  const fitted = fitPageToSize(src, t, doc);
+  if (!t.data.pages.length) throw new Error('empty');
+  const fonts = new Set<string>();
+  for (const p of t.data.pages) fontsOf(p.elements, fonts);
+  await ensureFonts(fonts);
   // frische IDs, damit dieselbe Vorlage mehrfach (auch auf mehreren Seiten) verwendet werden kann
-  useDocumentStore.getState().replaceActivePage({ background: fitted.background, elements: fitted.elements.map((e) => cloneElement(e, newId)) });
+  const pages = t.data.pages.map((src) => {
+    const fitted = fitPageToSize(src, t, doc);
+    return { background: fitted.background, elements: fitted.elements.map((e) => cloneElement(e, newId)) };
+  });
+  useDocumentStore.getState().applyTemplatePages(pages);
 }
 
 export default function TemplatesPanel() {
