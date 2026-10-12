@@ -1,13 +1,29 @@
-import { FORMATS } from '@designhub/shared';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AuthProvider } from '@/auth/AuthContext';
+import { GuestOnly, RequireAuth } from '@/auth/RouteGuards';
+import { ThemeProvider } from '@/theme/ThemeProvider';
+import { AppHome } from '@/pages/AppHome';
+import { AuthPage } from '@/pages/AuthPage';
+import { Landing } from '@/pages/Landing';
 
-/** Platzhalter für Etappe (a). Routing, Auth und Dashboard folgen in den nächsten Etappen. */
 export function App() {
   return (
-    <main className="min-h-screen grid place-items-center">
-      <div className="text-center space-y-4">
-        <h1 className="text-5xl font-bold bg-brand bg-clip-text text-transparent">DesignHub</h1>
-        <p className="text-muted-foreground">Setup steht. {Object.keys(FORMATS).length} Formate im Shared-Paket geladen.</p>
-      </div>
-    </main>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route element={<GuestOnly />}>
+              <Route path="/login" element={<AuthPage mode="login" />} />
+              <Route path="/register" element={<AuthPage mode="register" />} />
+            </Route>
+            <Route element={<RequireAuth />}>
+              <Route path="/app" element={<AppHome />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
