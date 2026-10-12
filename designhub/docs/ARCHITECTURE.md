@@ -13,7 +13,7 @@ Browserbasierter Grafik-Editor mit Vorlagen, Drag-and-Drop-Canvas und Export. Ei
 | Backend | **Express** + Zod-Validierung | schlank, getrennt vom Frontend deploybar |
 | DB | **PostgreSQL + Prisma** | Schema siehe `apps/server/prisma/schema.prisma`; Design-Inhalt als JSON-Spalte |
 | Auth | E-Mail/Passwort (scrypt aus Node) + Google OAuth (Code-Flow mit PKCE und State, eigene ~60 Zeilen), Session als signiertes JWT (`jose`) im httpOnly-Cookie | keine Tokens im localStorage, keine nativen Zusatz-Abhängigkeiten |
-| Storage | S3-kompatibel (lokal MinIO), Upload per Presigned-URL direkt vom Browser | API-Server bleibt frei von Dateitraffic |
+| Storage | S3-kompatibel (lokal RustFS), Upload per Presigned-URL direkt vom Browser | API-Server bleibt frei von Dateitraffic |
 | Export | PNG/JPG: `stage.toDataURL`; PDF: jsPDF; SVG: eigener Serializer (siehe Abschnitt 5) | |
 | Tests | Vitest (Store-Logik, Serializer), später Playwright für den Editor | |
 
@@ -40,7 +40,7 @@ designhub/
 │     ├─ prisma/                 # schema.prisma, Migrationen, seed.ts (Vorlagen)
 │     └─ src/{routes,middleware,services,lib}
 ├─ packages/shared/              # Dokumentmodell (Typen), Zod-Schemas, Formate – von Web und Server genutzt
-├─ docker-compose.yml            # Postgres + MinIO
+├─ docker-compose.yml            # Postgres + RustFS
 └─ docs/
 ```
 
@@ -96,7 +96,7 @@ REST unter `/api`: `auth/*`, `designs` (CRUD, Ordner, Papierkorb, Duplizieren), 
 - **Performance bei 100+ Objekten**: Messung per Benchmark-Szene in Etappe (c), nicht erst am Ende.
 - **Text-Rendering**: Konva-Text und SVG/PDF-Export müssen identisch umbrechen; Zeilenumbruch einmal zentral berechnen.
 - **Hintergrund entfernen**: braucht einen remove.bg-Key (Abschnitt 9).
-- **Google OAuth/S3**: laufen lokal nur mit eigenen Zugangsdaten bzw. MinIO; Etappe (a) funktioniert vorab mit E-Mail-Login.
+- **Google OAuth/S3**: laufen lokal nur mit eigenen Zugangsdaten bzw. RustFS; Etappe (a) funktioniert vorab mit E-Mail-Login.
 
 ## 9. Entscheidungen zu Abweichungen von der Vorgabe
 

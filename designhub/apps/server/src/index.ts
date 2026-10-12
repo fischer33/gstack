@@ -1,3 +1,5 @@
+// Muss zuerst kommen: lädt designhub/.env, bevor loadEnv() process.env liest.
+import './env';
 import { PrismaClient } from '@prisma/client';
 import { createApp } from './app';
 import { loadEnv } from './lib/env';
