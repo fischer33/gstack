@@ -12,8 +12,12 @@ const lines = (r: Rect, axis: 'x' | 'y') => {
  * Elementen. `threshold` in Dokumentpixeln (bei Zoom: Bildschirmpixel / Zoom). Liefert die Korrektur und die
  * Führungslinien, die nach dem Einrasten aktiv sind.
  */
-export function computeSnap(moving: Rect, others: readonly Rect[], page: { width: number; height: number }, threshold: number): SnapResult {
-  const targets = (axis: 'x' | 'y') => [...lines({ x: 0, y: 0, width: page.width, height: page.height }, axis), ...others.flatMap((o) => lines(o, axis))];
+export function computeSnap(
+  moving: Rect, others: readonly Rect[], page: { width: number; height: number }, threshold: number,
+  /** Zusätzliche Linien, an denen eingerastet wird (vom Nutzer gezogene Hilfslinien) */
+  extra: { x?: readonly number[]; y?: readonly number[] } = {},
+): SnapResult {
+  const targets = (axis: 'x' | 'y') => [...lines({ x: 0, y: 0, width: page.width, height: page.height }, axis), ...others.flatMap((o) => lines(o, axis)), ...(extra[axis] ?? [])];
 
   const best = (axis: 'x' | 'y') => {
     const mine = lines(moving, axis);

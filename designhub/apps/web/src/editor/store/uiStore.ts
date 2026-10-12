@@ -3,6 +3,9 @@ import type { Element } from '@designhub/shared';
 import { MAX_ZOOM, MIN_ZOOM, type Point } from '../engine/viewport';
 import { useDocumentStore, selectActivePage } from './documentStore';
 
+/** Vom Nutzer aus den Linealen gezogene Hilfslinie. `x` = senkrecht (Position von links), `y` = waagerecht (von oben). */
+export interface Guide { id: string; axis: 'x' | 'y'; pos: number }
+
 export interface Upload { id: string; name: string; src: string; width: number; height: number }
 
 interface UiState {
@@ -14,6 +17,9 @@ interface UiState {
   /** Leertaste gehalten: Hand-Werkzeug */
   spaceDown: boolean;
   clipboard: Element[];
+  /** Lineale und Hilfslinien sichtbar */
+  rulers: boolean;
+  guides: Guide[];
   /** Bild, das gerade zugeschnitten wird */
   croppingId: string | null;
   /** Bilder, die in dieser Sitzung hochgeladen wurden (Uploads-Panel); dauerhaft erst mit dem Speichern (Etappe f) */
@@ -30,6 +36,11 @@ interface UiState {
   setSpaceDown(v: boolean): void;
   setClipboard(els: Element[]): void;
   setViewport(v: { width: number; height: number }): void;
+  toggleRulers(): void;
+  addGuide(axis: Guide['axis'], pos: number): void;
+  moveGuide(id: string, pos: number): void;
+  removeGuide(id: string): void;
+  clearGuides(): void;
   setCropping(id: string | null): void;
   addUpload(u: Upload): void;
 }
@@ -41,6 +52,8 @@ export const useUiStore = create<UiState>((set) => ({
   pan: { x: 0, y: 0 },
   spaceDown: false,
   clipboard: [],
+  rulers: true,
+  guides: [],
   croppingId: null,
   uploads: [],
   viewport: { width: 0, height: 0 }, // 0 = noch nicht gemessen
@@ -54,6 +67,11 @@ export const useUiStore = create<UiState>((set) => ({
   setSpaceDown: (spaceDown) => set({ spaceDown }),
   setClipboard: (clipboard) => set({ clipboard }),
   setViewport: (viewport) => set({ viewport }),
+  toggleRulers: () => set((s) => ({ rulers: !s.rulers })),
+  addGuide: (axis, pos) => set((s) => ({ guides: [...s.guides, { id: crypto.randomUUID(), axis, pos }] })),
+  moveGuide: (id, pos) => set((s) => ({ guides: s.guides.map((g) => (g.id === id ? { ...g, pos } : g)) })),
+  removeGuide: (id) => set((s) => ({ guides: s.guides.filter((g) => g.id !== id) })),
+  clearGuides: () => set({ guides: [] }),
   setCropping: (croppingId) => set({ croppingId }),
   addUpload: (u) => set((s) => ({ uploads: [u, ...s.uploads].slice(0, 30) })),
 }));

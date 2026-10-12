@@ -42,4 +42,16 @@ describe('computeSnap', () => {
   it('Seitenrand: linke Kante rastet bei 0 ein', () => {
     expect(computeSnap({ x: 6, y: 300, width: 100, height: 100 }, [], page, 8).dx).toBe(-6);
   });
+
+  it('rastet an zusätzlichen Linien (Hilfslinien) ein und meldet sie', () => {
+    const r = computeSnap({ x: 303, y: 100, width: 100, height: 100 }, [], page, 8, { x: [300], y: [900] });
+    expect(r.dx).toBe(-3); // linke Kante an Hilfslinie x=300
+    expect(r.guides.vertical).toContain(300);
+    const v = computeSnap({ x: 100, y: 702, width: 100, height: 100 }, [], page, 8, { y: [800] }); // Unterkante 802 → 800
+    expect(v.dy).toBe(-2);
+    expect(v.guides.horizontal).toContain(800);
+  });
+  it('ohne zusätzliche Linien unverändertes Verhalten', () => {
+    expect(computeSnap({ x: 303, y: 100, width: 100, height: 100 }, [], page, 4).dx).toBe(0);
+  });
 });
