@@ -1,3 +1,6 @@
+/** Wird gesendet, wenn eine Daten-Abfrage 401 liefert (Sitzung abgelaufen). */
+export const UNAUTHORIZED_EVENT = 'dh:unauthorized';
+
 /** Fehler vom Server: HTTP-Status, Fehlercode und ggf. Feldfehler (bei `validation`). */
 export class ApiError extends Error {
   constructor(public status: number, public code: string, public fields: Record<string, string> = {}) {

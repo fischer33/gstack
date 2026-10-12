@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ApiError, api } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { ApiError, UNAUTHORIZED_EVENT, api } from '@/lib/api';
 
 export interface User { id: string; email: string; name: string | null; avatarUrl: string | null }
 type Status = 'loading' | 'authed' | 'guest';
@@ -17,6 +18,7 @@ const Ctx = createContext<AuthValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<Status>('loading');
+  const qc = useQueryClient();
 
   const set = (u: User | null) => { setUser(u); setStatus(u ? 'authed' : 'guest'); };
 
@@ -28,13 +30,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // Cache bei jedem Kontowechsel leeren, damit nie Daten eines vorherigen Nutzers sichtbar bleiben.
   const login = useCallback(async (email: string, password: string) => {
-    set((await api<{ user: User }>('/auth/login', { body: { email, password } })).user);
-  }, []);
+    const { user } = await api<{ user: User }>('/auth/login', { body: { email, password } });
+    qc.clear(); set(user);
+  }, [qc]);
   const register = useCallback(async (name: string, email: string, password: string) => {
-    set((await api<{ user: User }>('/auth/register', { body: { name: name || undefined, email, password } })).user);
-  }, []);
-  const logout = useCallback(async () => { await api('/auth/logout', { method: 'POST' }); set(null); }, []);
+    const { user } = await api<{ user: User }>('/auth/register', { body: { name: name || undefined, email, password } });
+    qc.clear(); set(user);
+  }, [qc]);
+  const logout = useCallback(async () => { await api('/auth/logout', { method: 'POST' }); qc.clear(); set(null); }, [qc]);
+
+  useEffect(() => {
+    const onUnauthorized = () => { qc.clear(); set(null); };
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+  }, [qc]);
 
   const value = useMemo(() => ({ status, user, login, register, logout }), [status, user, login, register, logout]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
