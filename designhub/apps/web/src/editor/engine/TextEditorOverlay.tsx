@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { selectActivePage, useDocumentStore } from '../store/documentStore';
 import { useUiStore } from '../store/uiStore';
 import { toNodePose } from './geometry';
+import { RULER_SIZE } from './rulers';
 
 /**
  * Inline-Textbearbeitung: ein <textarea> liegt exakt über dem Text (gleiche Schrift, Größe, Drehung, Zoom).
@@ -9,7 +10,8 @@ import { toNodePose } from './geometry';
  */
 export function TextEditorOverlay() {
   const editingId = useUiStore((s) => s.editingId);
-  const { zoom, pan } = useUiStore();
+  const { zoom, pan, rulers } = useUiStore();
+  const offset = rulers ? RULER_SIZE : 0; // der Canvas beginnt unterhalb/rechts der Lineale
   const el = useDocumentStore((s) => selectActivePage(s)?.elements.find((e) => e.id === editingId));
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -39,7 +41,7 @@ export function TextEditorOverlay() {
       onKeyDown={(e) => { if (e.key === 'Escape') e.currentTarget.blur(); }}
       onInput={(e) => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`; }}
       style={{
-        position: 'absolute', left: pan.x + pose.x * zoom, top: pan.y + pose.y * zoom, width: el.width * zoom,
+        position: 'absolute', left: offset + pan.x + pose.x * zoom, top: offset + pan.y + pose.y * zoom, width: el.width * zoom,
         transform: `rotate(${el.rotation}deg)`, transformOrigin: '0 0',
         font: `${el.italic ? 'italic ' : ''}${el.fontWeight} ${el.fontSize * zoom}px/${el.lineHeight} "${el.fontFamily}", sans-serif`,
         letterSpacing: el.letterSpacing * zoom, textAlign: el.align === 'justify' ? 'justify' : el.align, color: el.fill,

@@ -1,6 +1,6 @@
 import Konva from 'konva';
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { Group, Image as KImage, Layer, Rect, Stage, Transformer } from 'react-konva';
+import { Group, Image as KImage, Layer, Line, Rect, Stage, Transformer } from 'react-konva';
 import { scaleElement, type Element, type ImageElement, type Page } from '@designhub/shared';
 import { selectActivePage, useDocumentStore, type ElementPatch } from '../store/documentStore';
 import { useUiStore } from '../store/uiStore';
@@ -9,6 +9,7 @@ import { cropByEdges, effectiveCrop } from './cropMath';
 import { boundingRect, fromNodePose, intersects, normalizeRotation, toNodePose } from './geometry';
 import { computeSnap, type Guides, type Rect as Box } from './snap';
 import { useHtmlImage } from './useHtmlImage';
+import { RULER_SIZE } from './rulers';
 import { fitToView } from './viewActions';
 import { clampZoom, zoomAround } from './viewport';
 
@@ -58,6 +59,9 @@ function CropGhost({ el }: { el: ImageElement }) {
 }
 
 const SNAP_PX = 6; // Einrast-Abstand in Bildschirmpixeln
+const GUIDE_NAME = 'guide';
+const GUIDE_COLOR = '#00c4cc';
+const GUIDE_EXTENT = 50000; // Hilfslinien reichen praktisch unendlich weit
 
 function unionRect(rects: Box[]): Box {
   if (!rects.length) return { x: 0, y: 0, width: 0, height: 0 };
@@ -92,13 +96,13 @@ export function EditorCanvas({ stageRef }: { stageRef: RefObject<Konva.Stage> })
 
   const doc = useDocumentStore((s) => s.doc);
   const page = useDocumentStore(selectActivePage);
-  const { zoom, pan, selectedIds, editingId, spaceDown, viewport, croppingId } = useUiStore();
+  const { zoom, pan, selectedIds, editingId, spaceDown, viewport, croppingId, rulers, guides } = useUiStore();
   const guidesRef = useRef<Konva.Group>(null);
 
   // Aktuelle Werte für stabile Event-Handler (sonst würden alle Knoten bei jeder Änderung neu gerendert)
   const live = useRef({ page, zoom, spaceDown, doc });
   live.current = { page, zoom, spaceDown, doc };
-  const dragging = useRef<{ anchor: string; start: { x: number; y: number }; moving: Box; others: Box[] } | null>(null);
+  const dragging = useRef<{ anchor: string; start: { x: number; y: number }; moving: Box; others: Box[]; extra: { x: number[]; y: number[] } } | null>(null);
   const panning = useRef<{ client: { x: number; y: number }; pan: { x: number; y: number } } | null>(null);
   const marqueeStart = useRef<{ x: number; y: number; shift: boolean } | null>(null);
   const marqueeRect = useRef<typeof marquee>(null);
@@ -193,6 +197,10 @@ export function EditorCanvas({ stageRef }: { stageRef: RefObject<Konva.Stage> })
       dragging.current = {
         anchor: e.target.id(), start: { x: e.target.x(), y: e.target.y() }, moving,
         others: els.filter((x) => x.visible && !sel.has(x.id)).map(boundingRect),
+        // Hilfslinien sind zusätzliche Einrastziele (nur solange sie sichtbar sind)
+        extra: useUiStore.getState().rulers
+          ? { x: useUiStore.getState().guides.filter((g) => g.axis === 'x').map((g) => g.pos), y: useUiStore.getState().guides.filter((g) => g.axis === 'y').map((g) => g.pos) }
+          : { x: [], y: [] },
       };
     },
 
@@ -203,7 +211,7 @@ export function EditorCanvas({ stageRef }: { stageRef: RefObject<Konva.Stage> })
       if (!d || e.target.id() !== d.anchor || !live.current.doc) return;
       if ((e.evt as MouseEvent).altKey) return void showGuides({ vertical: [], horizontal: [] });
       const moving = { ...d.moving, x: d.moving.x + e.target.x() - d.start.x, y: d.moving.y + e.target.y() - d.start.y };
-      const snap = computeSnap(moving, d.others, live.current.doc, SNAP_PX / live.current.zoom);
+      const snap = computeSnap(moving, d.others, live.current.doc, SNAP_PX / live.current.zoom, d.extra);
       if (snap.dx || snap.dy) e.target.position({ x: e.target.x() + snap.dx, y: e.target.y() + snap.dy });
       showGuides(snap.guides);
     },
@@ -287,7 +295,7 @@ export function EditorCanvas({ stageRef }: { stageRef: RefObject<Konva.Stage> })
       panning.current = { client: { x: evt.clientX, y: evt.clientY }, pan: useUiStore.getState().pan };
       return;
     }
-    if (e.target.hasName(ELEMENT_NAME) || e.target.findAncestor(`.${ELEMENT_NAME}`, true) || e.target.getParent()?.className === 'Transformer') return;
+    if (e.target.hasName(GUIDE_NAME) || e.target.hasName(ELEMENT_NAME) || e.target.findAncestor(`.${ELEMENT_NAME}`, true) || e.target.getParent()?.className === 'Transformer') return;
     const shift = evt.shiftKey;
     if (!shift) useUiStore.getState().clearSelection();
     const p = pagePoint();
@@ -341,7 +349,8 @@ export function EditorCanvas({ stageRef }: { stageRef: RefObject<Konva.Stage> })
   };
 
   return (
-    <div ref={wrapRef} className="absolute inset-0 overflow-hidden bg-muted" style={{ cursor: spaceDown ? (panning.current ? 'grabbing' : 'grab') : 'default' }} data-testid="canvas-wrap">
+    <div ref={wrapRef} className="absolute inset-0 overflow-hidden bg-muted" data-testid="canvas-wrap"
+      style={{ cursor: spaceDown ? (panning.current ? 'grabbing' : 'grab') : 'default', left: rulers ? RULER_SIZE : 0, top: rulers ? RULER_SIZE : 0 }}>
       {doc && page && viewport.width > 0 && (
         <Stage ref={stageRef} width={viewport.width} height={viewport.height} x={pan.x} y={pan.y} scaleX={zoom} scaleY={zoom}
           onMouseDown={onStageDown} onTouchStart={onStageDown} onWheel={onWheel}>
@@ -355,6 +364,23 @@ export function EditorCanvas({ stageRef }: { stageRef: RefObject<Konva.Stage> })
             {page.elements.map((el) => el.visible && <ElementNode key={el.id} el={el} handlers={handlers} hidden={el.id === editingId} />)}
           </Layer>
           <Layer>
+            {rulers && guides.map((g) => (
+              <Line key={g.id} name={GUIDE_NAME} points={g.axis === 'x' ? [g.pos, -GUIDE_EXTENT, g.pos, GUIDE_EXTENT] : [-GUIDE_EXTENT, g.pos, GUIDE_EXTENT, g.pos]}
+                stroke={GUIDE_COLOR} strokeWidth={1 / zoom} hitStrokeWidth={10 / zoom} draggable
+                onMouseEnter={(e) => { e.target.getStage()!.container().style.cursor = g.axis === 'x' ? 'col-resize' : 'row-resize'; }}
+                onMouseLeave={(e) => { e.target.getStage()!.container().style.cursor = ''; }}
+                // Nur entlang der eigenen Achse beweglich; die Linie selbst liegt immer bei Knotenposition 0
+                onDragMove={(e) => { if (g.axis === 'x') e.target.y(0); else e.target.x(0); }}
+                onDragEnd={(e) => {
+                  const node = e.target, ui = useUiStore.getState(), box = wrapRef.current!.getBoundingClientRect();
+                  const ev = e.evt as MouseEvent;
+                  const outside = ev.clientX < box.left || ev.clientX > box.right || ev.clientY < box.top || ev.clientY > box.bottom;
+                  const moved = g.axis === 'x' ? g.pos + node.x() : g.pos + node.y();
+                  node.position({ x: 0, y: 0 });
+                  if (outside) ui.removeGuide(g.id); // aus der Fläche zurück auf das Lineal gezogen: löschen
+                  else ui.moveGuide(g.id, Math.round(moved * 2) / 2);
+                }} />
+            ))}
             {cropping && single?.type === 'image' && <CropGhost el={single} />}
             <Group ref={guidesRef} listening={false} />
             <Transformer ref={trRef} flipEnabled={false} rotateEnabled={!cropping} keepRatio={!cropping} enabledAnchors={cropping ? ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right', 'top-center', 'bottom-center'] : anchors} rotationSnaps={[0, 45, 90, 135, 180, -135, -90, -45]} rotationSnapTolerance={4}

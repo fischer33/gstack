@@ -12,6 +12,7 @@ import { makeBenchElements } from '@/editor/engine/bench';
 import { fontsOf } from '@/editor/lib/docFonts';
 import { ensureFonts } from '@/editor/lib/fonts';
 import { EditorCanvas } from '@/editor/engine/EditorCanvas';
+import { Rulers } from '@/editor/engine/Rulers';
 import { TextEditorOverlay } from '@/editor/engine/TextEditorOverlay';
 import { useEditorShortcuts } from '@/editor/engine/useEditorShortcuts';
 import { useDocumentStore } from '@/editor/store/documentStore';
@@ -25,6 +26,7 @@ export function EditorPage() {
   const stageRef = useRef<Konva.Stage>(null);
   const loadedId = useRef<string | null>(null);
   const { addImage } = useAddElements();
+  const rulers = useUiStore((s) => s.rulers);
   useEditorShortcuts();
   if (import.meta.env.DEV) (window as unknown as { __designhub: Record<string, unknown> }).__designhub.getStage = () => stageRef.current;
 
@@ -49,7 +51,7 @@ export function EditorPage() {
     return () => { cancelled = true; if (!useDocumentStore.getState().doc) loadedId.current = null; };
   }, [design, params]);
 
-  useEffect(() => () => { loadedId.current = null; useDocumentStore.getState().reset(); useUiStore.getState().clearSelection(); }, [id]);
+  useEffect(() => () => { loadedId.current = null; useDocumentStore.getState().reset(); useUiStore.getState().clearSelection(); useUiStore.getState().clearGuides(); }, [id]);
 
   // Warnung beim Schließen des Tabs, solange es noch kein Speichern gibt (Etappe f)
   useEffect(() => {
@@ -90,6 +92,7 @@ export function EditorPage() {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <main className="relative min-h-0 flex-1">
             <EditorCanvas stageRef={stageRef} />
+            {rulers && <Rulers />}
             <TextEditorOverlay />
           </main>
           <PageStrip />

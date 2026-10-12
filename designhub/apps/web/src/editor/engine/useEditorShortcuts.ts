@@ -56,6 +56,8 @@ export function useEditorShortcuts() {
         return;
       }
 
+      if (e.shiftKey && key === 'r') { e.preventDefault(); return ui().toggleRulers(); }
+
       const els = selected();
       if (key === 'delete' || key === 'backspace') { if (els.length) { e.preventDefault(); doc().removeElements(els.map((x) => x.id)); } return; }
       if (key === 'escape') return ui().clearSelection();
