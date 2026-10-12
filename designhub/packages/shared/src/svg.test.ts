@@ -42,8 +42,10 @@ describe('pageToSvg', () => {
 
   it('zeichnet Verlauf mit CSS-Winkel (90° = links nach rechts)', () => {
     const out = svg(page([], { type: 'gradient', angle: 90, stops: [{ offset: 0, color: '#000' }, { offset: 1, color: '#fff' }] }));
-    expect(out).toContain('rotate(0 .5 .5)');
+    expect(out).toContain('x1="0" y1="150" x2="400" y2="150"'); // 400×300: von links nach rechts durch die Mitte
     expect(out).toMatch(/fill="url\(#g\d+\)"/);
+    const down = svg(page([], { type: 'gradient', angle: 180, stops: [{ offset: 0, color: '#000' }, { offset: 1, color: '#fff' }] }));
+    expect(down).toContain('x1="200" y1="0" x2="200" y2="300"'); // 180° = von oben nach unten
   });
 
   it('Stern hat 2 × Zacken Eckpunkte', () => {
@@ -91,5 +93,66 @@ describe('parseSize', () => {
   });
   it('lehnt Unsinn und Grenzwerte ab', () => {
     for (const bad of ['abc', '10x10', '9000x100', '100', '-5x100', '']) expect(parseSize(bad)).toBeNull();
+  });
+});
+
+describe('pageToSvg: Deckung mit dem Editor', () => {
+  const img = (o = {}) => ({ ...base, id: 'im', type: 'image' as const, src: 'data:image/png;base64,AAAA', flipX: false, flipY: false, filters: { brightness: 0, contrast: 0, saturation: 0, blur: 0 }, ...o });
+
+  it('exakte Zeilenumbrüche aus der Messung haben Vorrang vor der Schätzung', () => {
+    const t = text({ id: 'tt', text: 'ein sehr langer Text der geschätzt umbrechen würde', width: 1000 });
+    const estimated = pageToSvg({ width: 400, height: 300 }, page([t]));
+    expect((estimated.match(/<tspan/g) ?? []).length).toBe(1);
+    const measured = pageToSvg({ width: 400, height: 300 }, page([t]), { textLines: { tt: ['ein sehr langer', 'Text der', 'geschätzt'] } });
+    expect((measured.match(/<tspan/g) ?? []).length).toBe(3);
+    expect(measured).toContain('>Text der</tspan>');
+  });
+
+  it('Zeilen sitzen mittig in ihrer Zeilenbox (wie textBaseline "middle" im Editor)', () => {
+    const out = pageToSvg({ width: 400, height: 300 }, page([text({ id: 't', fontSize: 20, lineHeight: 1.5, text: 'a\nb' })]));
+    expect(out).toContain('dominant-baseline="central"');
+    expect(out).toContain('y="15"'); // (0 + 0,5) × 30
+    expect(out).toContain('y="45"'); // (1 + 0,5) × 30
+  });
+
+  it('Pfeilspitze: 3 × Strichstärke wie Konva.Arrow', () => {
+    const out = svg(page([rect({ kind: 'arrow', width: 100, height: 20, stroke: '#000', strokeWidth: 4 })]));
+    expect(out).toContain('points="100,10 88,4 88,16"');
+  });
+
+  it('Bilder werden gestreckt statt beschnitten (preserveAspectRatio none)', () => {
+    expect(svg(page([img()]))).toContain('preserveAspectRatio="none"');
+  });
+
+  it('Hintergrundbild: weiße Fläche darunter für "Einpassen"', () => {
+    const out = svg(page([], { type: 'image', src: 'data:image/png;base64,AAAA', fit: 'contain' }));
+    expect(out.indexOf('fill="#ffffff"')).toBeLessThan(out.indexOf('<image'));
+    expect(out).toContain('xMidYMid meet');
+  });
+
+  it('Bildfilter werden als SVG-Filter in Editor-Reihenfolge ausgegeben', () => {
+    const out = svg(page([img({ filters: { brightness: 50, contrast: 40, saturation: -100, blur: 6 } })]));
+    expect(out).toContain('<feFuncR type="linear" slope="1" intercept="0.5"/>'); // Helligkeit +50 → +0,5
+    expect(out).toContain('slope="1.96" intercept="-0.48"'); // Kontrast 40: ((40+100)/100)² = 1,96
+    expect(out).toContain('<feColorMatrix type="saturate" values="0"/>');
+    expect(out).toContain('<feGaussianBlur stdDeviation="3"/>');
+    expect(out.indexOf('intercept="0.5"')).toBeLessThan(out.indexOf('saturate'));
+    expect(out.indexOf('saturate')).toBeLessThan(out.indexOf('feGaussianBlur'));
+    expect(out).toMatch(/<g filter="url\(#f\d+\)">/);
+  });
+
+  it('ohne aktive Filter kein Filter-Element', () => {
+    expect(svg(page([img()]))).not.toContain('<filter');
+  });
+
+  it('Sättigung +100 verdoppelt, nie negativ', () => {
+    expect(svg(page([img({ filters: { brightness: 0, contrast: 0, saturation: 100, blur: 0 } })]))).toContain('values="2"');
+  });
+
+  it('styles landen in <style>, ein eingeschleustes </style> wird entschärft', () => {
+    const out = pageToSvg({ width: 10, height: 10 }, page([]), { styles: "@import url('x');</style><script>alert(1)</script>" });
+    expect(out).toContain('<style>@import url(\'x\');');
+    expect(out.match(/<\/style>/g)).toHaveLength(1);
+    expect(out.indexOf('</style>')).toBeGreaterThan(out.indexOf('<script>')); // Skript bleibt im Style-Block (kein Ausbruch)
   });
 });
