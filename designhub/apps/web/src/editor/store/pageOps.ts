@@ -30,3 +30,24 @@ export function cloneElement(el: Element, newId: () => string, dx = 0, dy = 0): 
   if (copy.type === 'group') copy.children = copy.children.map((c) => cloneElement(c, newId));
   return copy;
 }
+
+/** Verschiebt ein Element eines Arrays an eine neue Position (neues Array). Ungültige Indizes werden begrenzt. */
+export function moveItem<T>(items: readonly T[], from: number, to: number): T[] {
+  if (from < 0 || from >= items.length) return [...items];
+  const out = [...items];
+  const [item] = out.splice(from, 1);
+  out.splice(Math.min(Math.max(to, 0), out.length), 0, item);
+  return out;
+}
+
+/**
+ * Setzt die gewählten Elemente als Block an einen Index. Der Index zählt in der Liste *ohne* die gewählten Elemente
+ * (0 = ganz hinten, Länge = ganz vorne). Die relative Reihenfolge der gewählten bleibt erhalten.
+ */
+export function reorderToIndex<T extends { id: string }>(items: readonly T[], ids: readonly string[], index: number): T[] {
+  const picked = items.filter((e) => ids.includes(e.id));
+  if (!picked.length) return [...items];
+  const rest = items.filter((e) => !ids.includes(e.id));
+  const at = Math.min(Math.max(index, 0), rest.length);
+  return [...rest.slice(0, at), ...picked, ...rest.slice(at)];
+}

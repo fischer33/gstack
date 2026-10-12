@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Element } from '@designhub/shared';
-import { cloneElement, reorder } from './pageOps';
+import { cloneElement, moveItem, reorder, reorderToIndex } from './pageOps';
 
 const ids = (xs: { id: string }[]) => xs.map((x) => x.id).join('');
 const list = (s: string) => [...s].map((id) => ({ id }));
@@ -42,4 +42,25 @@ describe('cloneElement', () => {
     if (copy.type === 'group') copy.children[0].x = 999;
     expect(group.type === 'group' && group.children[0].x).toBe(10);
   });
+});
+
+describe('moveItem / reorderToIndex', () => {
+  const l = (s: string) => [...s].map((id) => ({ id }));
+  const out = (xs: { id: string }[]) => xs.map((x) => x.id).join('');
+  it('moveItem verschiebt und begrenzt Indizes', () => {
+    expect(moveItem([1, 2, 3, 4], 0, 2)).toEqual([2, 3, 1, 4]);
+    expect(moveItem([1, 2, 3, 4], 3, 0)).toEqual([4, 1, 2, 3]);
+    expect(moveItem([1, 2, 3], 0, 99)).toEqual([2, 3, 1]);
+    expect(moveItem([1, 2, 3], 1, -5)).toEqual([2, 1, 3]);
+    expect(moveItem([1, 2, 3], 9, 0)).toEqual([1, 2, 3]);
+  });
+  it('reorderToIndex: Index zählt ohne die Verschobenen', () => {
+    expect(out(reorderToIndex(l('abcd'), ['a'], 2))).toBe('bcad');
+    expect(out(reorderToIndex(l('abcd'), ['d'], 0))).toBe('dabc');
+    expect(out(reorderToIndex(l('abcd'), ['b'], 99))).toBe('acdb');
+  });
+  it('Block bleibt zusammen und in relativer Reihenfolge', () => {
+    expect(out(reorderToIndex(l('abcde'), ['d', 'b'], 1))).toBe('abdce'); // b, d als Block hinter a
+  });
+  it('unbekannte IDs: unverändert', () => expect(out(reorderToIndex(l('abc'), ['x'], 0))).toBe('abc'));
 });

@@ -194,3 +194,124 @@ describe('Auswahl bleibt konsistent', () => {
     expect(useUiStore.getState().editingId).toBeNull();
   });
 });
+
+describe('Gruppieren, Ausrichten, Ebenen-Sortierung', () => {
+  it('group/ungroup sind jeweils ein Undo-Schritt', () => {
+    for (const id of 'abc') s().addElement(rect(id, { x: id.charCodeAt(0) * 3 }));
+    const past = s().past.length;
+    const gid = s().group(['a', 'b'])!;
+    expect(s().past.length).toBe(past + 1);
+    expect(els().map((e) => e.type)).toEqual(['group', 'shape']);
+    s().undo();
+    expect(order()).toBe('abc');
+    s().redo();
+    expect(s().ungroup(gid)).toEqual(['a', 'b']);
+    expect(order()).toBe('abc');
+  });
+  it('group mit weniger als zwei: null, kein Eintrag', () => {
+    s().addElement(rect('a'));
+    const past = s().past.length;
+    expect(s().group(['a'])).toBeNull();
+    expect(s().past.length).toBe(past);
+  });
+  it('align: ein Undo-Schritt, gesperrte Elemente bleiben', () => {
+    s().addElement(rect('a', { x: 100 })); s().addElement(rect('b', { x: 400 })); s().addElement(rect('c', { x: 700, locked: true }));
+    const past = s().past.length;
+    s().align(['a', 'b', 'c'], 'left');
+    expect(s().past.length).toBe(past + 1);
+    expect(els().map((e) => e.x)).toEqual([100, 100, 700]);
+    s().undo();
+    expect(els().map((e) => e.x)).toEqual([100, 400, 700]);
+  });
+  it('distribute gleicht Lücken an', () => {
+    s().addElement(rect('a', { x: 0 })); s().addElement(rect('b', { x: 120 })); s().addElement(rect('c', { x: 600 }));
+    s().distribute(['a', 'b', 'c'], 'x');
+    expect(els().map((e) => e.x)).toEqual([0, 300, 600]);
+  });
+  it('align an bereits ausgerichteten Elementen erzeugt keinen Eintrag', () => {
+    s().addElement(rect('a', { x: 5 })); s().addElement(rect('b', { x: 5 }));
+    const past = s().past.length;
+    s().align(['a', 'b'], 'left');
+    expect(s().past.length).toBe(past);
+  });
+  it('reorderToIndex: Undo stellt her', () => {
+    for (const id of 'abcd') s().addElement(rect(id));
+    s().reorderToIndex(['a'], 2);
+    expect(order()).toBe('bcad');
+    s().undo();
+    expect(order()).toBe('abcd');
+  });
+});
+
+describe('Seiten', () => {
+  const pages = () => s().doc!.pages;
+  it('addPage fügt hinter der aktiven Seite ein und aktiviert sie', () => {
+    const first = pages()[0].id;
+    const id = s().addPage();
+    expect(pages().map((p) => p.id)).toEqual([first, id]);
+    expect(s().activePageId).toBe(id);
+    expect(els()).toEqual([]);
+  });
+  it('Elemente landen auf der aktiven Seite', () => {
+    s().addElement(rect('a'));
+    const second = s().addPage();
+    s().addElement(rect('b'));
+    expect(pages()[0].elements.map((e) => e.id)).toEqual(['a']);
+    expect(pages().find((p) => p.id === second)!.elements.map((e) => e.id)).toEqual(['b']);
+    s().setActivePage(pages()[0].id);
+    expect(order()).toBe('a');
+  });
+  it('duplicatePage: tiefe Kopie mit neuen IDs, unabhängig vom Original', () => {
+    s().addElement(rect('a', { x: 10 }));
+    const copyId = s().duplicatePage(pages()[0].id)!;
+    expect(pages()).toHaveLength(2);
+    const copy = pages().find((p) => p.id === copyId)!;
+    expect(copy.elements[0].id).not.toBe('a');
+    expect(copy.elements[0].x).toBe(10);
+    s().updateElements([copy.elements[0].id], { x: 99 });
+    expect(pages()[0].elements[0].x).toBe(10);
+  });
+  it('removePage: nie die letzte Seite, aktive Seite weicht aus', () => {
+    s().removePage(pages()[0].id);
+    expect(pages()).toHaveLength(1);
+    const second = s().addPage();
+    s().removePage(second);
+    expect(pages()).toHaveLength(1);
+    expect(s().activePageId).toBe(pages()[0].id);
+  });
+  it('movePage ordnet um', () => {
+    const a = pages()[0].id, b = s().addPage(), c = s().addPage();
+    s().movePage(c, 0);
+    expect(pages().map((p) => p.id)).toEqual([c, a, b]);
+  });
+  it('Undo von addPage: aktive Seite fällt auf eine gültige zurück', () => {
+    const first = pages()[0].id;
+    s().addPage();
+    s().undo();
+    expect(pages()).toHaveLength(1);
+    expect(s().activePageId).toBe(first);
+  });
+  it('Undo von removePage bringt Seite samt Inhalt zurück', () => {
+    s().addElement(rect('a'));
+    const second = s().addPage();
+    s().addElement(rect('b'));
+    s().removePage(second);
+    s().undo();
+    expect(pages().find((p) => p.id === second)!.elements.map((e) => e.id)).toEqual(['b']);
+  });
+  it('Seitenwechsel bereinigt die Auswahl', () => {
+    s().addElement(rect('a'));
+    useUiStore.getState().select(['a']);
+    s().addPage();
+    expect(useUiStore.getState().selectedIds).toEqual([]);
+  });
+  it('replaceActivePage ersetzt Inhalt und Hintergrund in einem Schritt', () => {
+    s().addElement(rect('a'));
+    const past = s().past.length;
+    s().replaceActivePage({ background: { type: 'solid', color: '#111111' }, elements: [rect('x'), rect('y')] });
+    expect(s().past.length).toBe(past + 1);
+    expect(order()).toBe('xy');
+    s().undo();
+    expect(order()).toBe('a');
+  });
+});

@@ -3,6 +3,8 @@ import type { Element } from '@designhub/shared';
 import { MAX_ZOOM, MIN_ZOOM, type Point } from '../engine/viewport';
 import { useDocumentStore, selectActivePage } from './documentStore';
 
+export interface Upload { id: string; name: string; src: string; width: number; height: number }
+
 interface UiState {
   selectedIds: string[];
   /** Element, dessen Text gerade inline bearbeitet wird */
@@ -12,6 +14,10 @@ interface UiState {
   /** Leertaste gehalten: Hand-Werkzeug */
   spaceDown: boolean;
   clipboard: Element[];
+  /** Bild, das gerade zugeschnitten wird */
+  croppingId: string | null;
+  /** Bilder, die in dieser Sitzung hochgeladen wurden (Uploads-Panel); dauerhaft erst mit dem Speichern (Etappe f) */
+  uploads: Upload[];
   /** Sichtbare Größe der Arbeitsfläche in Pixeln (vom Canvas gemeldet), 0 bis zur ersten Messung */
   viewport: { width: number; height: number };
 
@@ -24,6 +30,8 @@ interface UiState {
   setSpaceDown(v: boolean): void;
   setClipboard(els: Element[]): void;
   setViewport(v: { width: number; height: number }): void;
+  setCropping(id: string | null): void;
+  addUpload(u: Upload): void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -33,6 +41,8 @@ export const useUiStore = create<UiState>((set) => ({
   pan: { x: 0, y: 0 },
   spaceDown: false,
   clipboard: [],
+  croppingId: null,
+  uploads: [],
   viewport: { width: 0, height: 0 }, // 0 = noch nicht gemessen
 
   select: (ids) => set({ selectedIds: [...new Set(ids)] }),
@@ -44,6 +54,8 @@ export const useUiStore = create<UiState>((set) => ({
   setSpaceDown: (spaceDown) => set({ spaceDown }),
   setClipboard: (clipboard) => set({ clipboard }),
   setViewport: (viewport) => set({ viewport }),
+  setCropping: (croppingId) => set({ croppingId }),
+  addUpload: (u) => set((s) => ({ uploads: [u, ...s.uploads].slice(0, 30) })),
 }));
 
 /** Auswahl bereinigen, wenn Elemente verschwinden (Löschen, Undo). Einmalig beim Laden des Moduls registriert. */
