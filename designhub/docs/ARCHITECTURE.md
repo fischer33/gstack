@@ -12,7 +12,7 @@ Browserbasierter Grafik-Editor mit Vorlagen, Drag-and-Drop-Canvas und Export. Ei
 | State | **Zustand + Immer** | Dokument-Store mit Patch-basiertem Undo/Redo, feingranulare Selektoren |
 | Backend | **Express** + Zod-Validierung | schlank, getrennt vom Frontend deploybar |
 | DB | **PostgreSQL + Prisma** | Schema siehe `apps/server/prisma/schema.prisma`; Design-Inhalt als JSON-Spalte |
-| Auth | E-Mail/Passwort (argon2) + Google OAuth (`arctic`), Session als httpOnly-Cookie | keine Tokens im localStorage |
+| Auth | E-Mail/Passwort (scrypt aus Node) + Google OAuth (Code-Flow mit PKCE und State, eigene ~60 Zeilen), Session als signiertes JWT (`jose`) im httpOnly-Cookie | keine Tokens im localStorage, keine nativen Zusatz-Abhängigkeiten |
 | Storage | S3-kompatibel (lokal MinIO), Upload per Presigned-URL direkt vom Browser | API-Server bleibt frei von Dateitraffic |
 | Export | PNG/JPG: `stage.toDataURL`; PDF: jsPDF; SVG: eigener Serializer (siehe Abschnitt 5) | |
 | Tests | Vitest (Store-Logik, Serializer), später Playwright für den Editor | |
@@ -67,6 +67,15 @@ Schemaänderungen erhöhen `DOCUMENT_VERSION` und bekommen eine Migrationsfunkti
 - **SVG**: Konva kann kein SVG. Plan: eigener Serializer `DesignDocument → SVG-String` (Formen, Text, Bilder als `<image>`, Verlauf, Schatten). Er ist reine Funktion und damit gut testbar.
 - Vorgabe nennt `html-to-image`. Das rendert DOM, nicht das Konva-Canvas, und würde Ergebnis und Vorschau auseinanderlaufen lassen. Entscheidung: Abschnitt 9.
 
+## 5a. Auth-Details (Etappe a)
+
+- Passwörter: scrypt (N=2^15, r=8, p=1), Parameter im Hash gespeichert. Login rechnet auch für unbekannte E-Mails (kein Timing-Orakel).
+- Session: JWT HS256, 7 Tage, Cookie `dh_session` (`HttpOnly`, `SameSite=Lax`, `Secure` in Produktion). `/me` lädt den User bei jedem Aufruf neu; gelöschte Konten verlieren sofort den Zugang.
+- CSRF: schreibende Requests mit fremdem `Origin` bekommen 403; zusätzlich `SameSite=Lax`.
+- Rate-Limit: 10 Versuche pro 15 min und IP auf Login/Registrierung (im Speicher; bei mehreren Instanzen durch Redis ersetzen).
+- Google: State und PKCE-Verifier liegen signiert in einem 10-Minuten-Cookie. Konten werden nur über eine von Google **verifizierte** E-Mail verknüpft. Ohne `GOOGLE_CLIENT_ID/SECRET` ist der Button ausgeblendet.
+- Die Auth-Logik hängt an `UserRepo` und `GoogleClient`-Schnittstellen und ist deshalb ohne Datenbank und Netzwerk getestet.
+
 ## 6. Backend
 
 REST unter `/api`: `auth/*`, `designs` (CRUD, Ordner, Papierkorb, Duplizieren), `templates` (nur lesen), `assets` (Presigned-Upload), `share/:token`. Teilen: `ShareLink` mit Token und Rolle VIEW/EDIT; Zugriff über Token wird serverseitig gegen die Rolle geprüft. Zod validiert jeden Request. Hintergrund entfernen läuft über den Server (API-Key bleibt serverseitig).
@@ -75,7 +84,7 @@ REST unter `/api`: `auth/*`, `designs` (CRUD, Ordner, Papierkorb, Duplizieren), 
 
 | Etappe | Inhalt | Fertig, wenn |
 |---|---|---|
-| (a) | Setup, Auth (E-Mail + Google), Landing/Login, Theme | Registrieren, Einloggen, Logout im Browser |
+| (a) ✅ | Setup, Auth (E-Mail + Google), Landing/Login, Theme | Registrieren, Einloggen, Logout im Browser |
 | (b) | Dashboard, Format-Schnellauswahl, „Zuletzt bearbeitet“, Meine Designs, Ordner, Papierkorb | Design anlegen und in der Liste sehen |
 | (c) | Editor-Kern: Canvas, Zoom/Pan, Auswahl, Transformer, Formen/Text/Bild, Undo/Redo, Tastenkürzel, Store-Tests | 100+ Objekte flüssig, Undo/Redo getestet |
 | (d) | Toolbar, Panels, Ebenen (Drag-Sortierung), Gruppieren, Ausrichten, Smart Guides, Bildfilter/Crop, Hintergründe, mehrseitig | Alle Muss-Funktionen bedienbar |
