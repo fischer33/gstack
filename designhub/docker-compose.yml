@@ -4,10 +4,11 @@ services:
     environment: { POSTGRES_USER: designhub, POSTGRES_PASSWORD: designhub, POSTGRES_DB: designhub }
     ports: ["5432:5432"]
     volumes: [dbdata:/var/lib/postgresql/data]
-  minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
-    environment: { MINIO_ROOT_USER: designhub, MINIO_ROOT_PASSWORD: designhub-secret }
+  # S3-kompatibel; ersetzt minio/minio (Image nicht mehr frei ziehbar)
+  s3:
+    image: rustfs/rustfs:latest
+    command: /data
+    environment: { RUSTFS_ACCESS_KEY: designhub, RUSTFS_SECRET_KEY: designhub-secret, RUSTFS_CONSOLE_ENABLE: "true" }
     ports: ["9000:9000", "9001:9001"]
     volumes: [s3data:/data]
 volumes: { dbdata: {}, s3data: {} }
