@@ -21,7 +21,7 @@ export interface AuthDeps { env: Env; users: UserRepo; google: GoogleClient | nu
 
 export function authRouter({ env, users, google }: AuthDeps) {
   const r = Router();
-  const limiter = rateLimit(10, 15 * 60_000);
+  const limiter = rateLimit(env.AUTH_RATE_LIMIT_MAX, 15 * 60_000);
 
   const startSession = async (res: import('express').Response, userId: string) =>
     res.cookie(SESSION_COOKIE, await signSession(env, userId), cookieOptions(env, SESSION_DAYS * DAY));
