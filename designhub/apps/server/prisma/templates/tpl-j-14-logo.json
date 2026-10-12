@@ -1,0 +1,104 @@
+{
+  "id": "tpl-j-14-logo",
+  "title": "Kreis-Monogramm",
+  "category": "Logo",
+  "tags": [
+    "monogramm",
+    "kreis",
+    "minimal"
+  ],
+  "width": 500,
+  "height": 500,
+  "data": {
+    "version": 1,
+    "width": 500,
+    "height": 500,
+    "pages": [
+      {
+        "id": "p1",
+        "background": {
+          "type": "solid",
+          "color": "#ffffff"
+        },
+        "elements": [
+          {
+            "id": "e1",
+            "x": 90,
+            "y": 60,
+            "width": 320,
+            "height": 320,
+            "rotation": 0,
+            "opacity": 1,
+            "locked": false,
+            "visible": true,
+            "type": "shape",
+            "kind": "ellipse",
+            "fill": "#1f2a44",
+            "stroke": "transparent",
+            "strokeWidth": 0
+          },
+          {
+            "id": "e2",
+            "x": 106,
+            "y": 76,
+            "width": 288,
+            "height": 288,
+            "rotation": 0,
+            "opacity": 1,
+            "locked": false,
+            "visible": true,
+            "type": "shape",
+            "kind": "ellipse",
+            "fill": "transparent",
+            "stroke": "#f2c14e",
+            "strokeWidth": 4
+          },
+          {
+            "id": "e3",
+            "x": 90,
+            "y": 160,
+            "width": 320,
+            "height": 156,
+            "rotation": 0,
+            "opacity": 1,
+            "locked": false,
+            "visible": true,
+            "type": "text",
+            "text": "NB",
+            "fontFamily": "Playfair Display",
+            "fontSize": 130,
+            "fontWeight": 700,
+            "italic": false,
+            "underline": false,
+            "align": "center",
+            "fill": "#f2c14e",
+            "lineHeight": 1.2,
+            "letterSpacing": 0
+          },
+          {
+            "id": "e4",
+            "x": 0,
+            "y": 410,
+            "width": 500,
+            "height": 34,
+            "rotation": 0,
+            "opacity": 1,
+            "locked": false,
+            "visible": true,
+            "type": "text",
+            "text": "NORDBLICK STUDIO",
+            "fontFamily": "Montserrat",
+            "fontSize": 28,
+            "fontWeight": 700,
+            "italic": false,
+            "underline": false,
+            "align": "center",
+            "fill": "#1f2a44",
+            "lineHeight": 1.2,
+            "letterSpacing": 6
+          }
+        ]
+      }
+    ]
+  }
+}

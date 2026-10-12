@@ -1,10 +1,14 @@
 // Seed: Vorlagen-Galerie (mind. 20 laut docs/ARCHITECTURE.md).
 // Idempotent: feste IDs + upsert, mehrfaches Ausführen erzeugt keine Duplikate.
 import '../src/env';
+import { readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { PrismaClient } from '@prisma/client';
 import {
   DOCUMENT_VERSION,
   FORMATS,
+  parseDesignDocument,
   type Background,
   type DesignDocument,
   type Element,
@@ -156,6 +160,20 @@ function toDocument(spec: Spec): DesignDocument {
   };
 }
 
+/** Handgestaltete Vorlagen aus prisma/templates/*.json (erzeugt mit build-templates.ts); jede wird vor dem Speichern geprüft. */
+async function seedJsonTemplates(): Promise<number> {
+  const dir = join(dirname(fileURLToPath(import.meta.url)), 'templates');
+  const files = readdirSync(dir).filter((f) => f.endsWith('.json')).sort();
+  for (const f of files) {
+    const t = JSON.parse(readFileSync(join(dir, f), 'utf8')) as { id: string; title: string; category: string; tags: string[]; width: number; height: number; data: unknown };
+    const check = parseDesignDocument(t.data);
+    if (!check.ok) throw new Error(`${f} ist ungültig: ${JSON.stringify(check.issues)}`);
+    const { id, ...fields } = { ...t, data: check.doc as unknown as object };
+    await prisma.template.upsert({ where: { id }, create: { id, ...fields }, update: fields });
+  }
+  return files.length;
+}
+
 async function main() {
   for (const [i, spec] of SPECS.entries()) {
     seq = 0; // stabile Element-IDs pro Vorlage
@@ -169,9 +187,12 @@ async function main() {
       height,
       data: toDocument(spec) as unknown as object,
     };
+    const check = parseDesignDocument(fields.data);
+    if (!check.ok) throw new Error(`Vorlage ${id} ist ungültig: ${JSON.stringify(check.issues)}`);
     await prisma.template.upsert({ where: { id }, create: { id, ...fields }, update: fields });
   }
-  console.log(`Seed fertig: ${SPECS.length} Vorlagen.`);
+  const json = await seedJsonTemplates();
+  console.log(`Seed fertig: ${SPECS.length} generierte + ${json} gestaltete Vorlagen.`);
 }
 
 main()

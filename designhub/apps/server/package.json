@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:templates": "tsx prisma/build-templates.ts"
   },
   "dependencies": {
     "@designhub/shared": "*",

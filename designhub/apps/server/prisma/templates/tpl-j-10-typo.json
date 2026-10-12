@@ -1,0 +1,105 @@
+{
+  "id": "tpl-j-10-typo",
+  "title": "Typografie-Poster",
+  "category": "Poster",
+  "tags": [
+    "typografie",
+    "minimal",
+    "kunst"
+  ],
+  "width": 1587,
+  "height": 2245,
+  "data": {
+    "version": 1,
+    "width": 1587,
+    "height": 2245,
+    "pages": [
+      {
+        "id": "p1",
+        "background": {
+          "type": "solid",
+          "color": "#efe9dd"
+        },
+        "elements": [
+          {
+            "id": "e1",
+            "x": 90,
+            "y": 150,
+            "width": 1407,
+            "height": 1162,
+            "rotation": 0,
+            "opacity": 1,
+            "locked": false,
+            "visible": true,
+            "type": "text",
+            "text": "LESS\nIS\nMORE",
+            "fontFamily": "Oswald",
+            "fontSize": 440,
+            "fontWeight": 700,
+            "italic": false,
+            "underline": false,
+            "align": "left",
+            "fill": "#111111",
+            "lineHeight": 0.88,
+            "letterSpacing": -6
+          },
+          {
+            "id": "e2",
+            "x": 90,
+            "y": 1760,
+            "width": 330,
+            "height": 330,
+            "rotation": 0,
+            "opacity": 1,
+            "locked": false,
+            "visible": true,
+            "type": "shape",
+            "kind": "rect",
+            "fill": "#e63946",
+            "stroke": "transparent",
+            "strokeWidth": 0,
+            "cornerRadius": 0
+          },
+          {
+            "id": "e3",
+            "x": 480,
+            "y": 1925,
+            "width": 1017,
+            "height": 18,
+            "rotation": 0,
+            "opacity": 1,
+            "locked": false,
+            "visible": true,
+            "type": "shape",
+            "kind": "line",
+            "fill": "transparent",
+            "stroke": "#111111",
+            "strokeWidth": 6
+          },
+          {
+            "id": "e4",
+            "x": 480,
+            "y": 1960,
+            "width": 1017,
+            "height": 106,
+            "rotation": 0,
+            "opacity": 1,
+            "locked": false,
+            "visible": true,
+            "type": "text",
+            "text": "Ludwig Mies van der Rohe\nGestaltung seit 1929",
+            "fontFamily": "Lora",
+            "fontSize": 38,
+            "fontWeight": 400,
+            "italic": true,
+            "underline": false,
+            "align": "left",
+            "fill": "#111111",
+            "lineHeight": 1.4,
+            "letterSpacing": 0
+          }
+        ]
+      }
+    ]
+  }
+}
