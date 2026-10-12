@@ -19,6 +19,8 @@ export interface UserRepo {
   findByGoogleId(googleId: string): Promise<UserRecord | null>;
   create(data: NewUser): Promise<UserRecord>;
   update(id: string, data: Partial<Omit<UserRecord, 'id' | 'createdAt'>>): Promise<UserRecord>;
+  /** Konto samt Designs, Ordnern und Bildern löschen (Kaskade in der Datenbank). */
+  delete(id: string): Promise<void>;
 }
 
 export const prismaUserRepo = (db: PrismaClient): UserRepo => ({
@@ -27,6 +29,7 @@ export const prismaUserRepo = (db: PrismaClient): UserRepo => ({
   findByGoogleId: (googleId) => db.user.findUnique({ where: { googleId } }),
   create: (data) => db.user.create({ data }),
   update: (id, data) => db.user.update({ where: { id }, data }),
+  delete: async (id) => { await db.user.delete({ where: { id } }); },
 });
 
 /** Nur diese Felder verlassen den Server. */

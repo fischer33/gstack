@@ -5,7 +5,7 @@ export interface DesignSummary {
   title: string;
   width: number;
   height: number;
-  /** `data:`-URL (SVG, später PNG) oder null, wenn noch keine Vorschau existiert */
+  /** `data:`-URL (PNG vom Editor, SVG als Ersatz) oder null, wenn noch keine Vorschau existiert */
   thumbnail: string | null;
   folderId: string | null;
   updatedAt: string;
@@ -31,3 +31,17 @@ export interface TemplateCategory { name: string; count: number }
 
 /** Papierkorb-Einträge werden nach dieser Zeit endgültig gelöscht. */
 export const TRASH_RETENTION_DAYS = 30;
+
+/** Vollständiges Design, wie der Editor es lädt und speichert. */
+export interface DesignDetail extends DesignSummary { pages: import('./document').Page[]; version: number }
+
+export type ShareRole = 'VIEW' | 'EDIT';
+
+export interface ShareLinkSummary { id: string; token: string; role: ShareRole; expiresAt: string | null; createdAt: string }
+
+/** Was ein Besucher über einen Freigabe-Link sieht (keine Besitzerdaten). */
+export interface SharedDesign { title: string; width: number; height: number; pages: import('./document').Page[]; version: number; role: ShareRole }
+
+export interface SaveResult { version: number; updatedAt: string }
+
+export interface AssetSummary { id: string; url: string; mime: string; size: number; createdAt: string }

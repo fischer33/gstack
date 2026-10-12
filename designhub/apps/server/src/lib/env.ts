@@ -15,6 +15,14 @@ const schema = z.object({
   BG_REMOVAL_API_KEY: optional,
   GOOGLE_CLIENT_ID: optional,
   GOOGLE_CLIENT_SECRET: optional,
+  /** S3-kompatibler Speicher für Bild-Uploads. Ohne Endpunkt/Bucket/Zugang antworten die Upload-Routen mit 501 und der Editor speichert Bilder im Dokument. */
+  S3_ENDPOINT: optional,
+  S3_REGION: z.string().default('us-east-1'),
+  S3_BUCKET: optional,
+  S3_ACCESS_KEY: optional,
+  S3_SECRET_KEY: optional,
+  /** Öffentliche Basis-URL, unter der hochgeladene Bilder im Browser erreichbar sind (z. B. http://localhost:9000/designhub). */
+  S3_PUBLIC_URL: optional,
   GOOGLE_REDIRECT_URI: z.string().url().default('http://localhost:5173/api/auth/google/callback'),
 });
 

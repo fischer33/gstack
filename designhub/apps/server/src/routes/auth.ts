@@ -15,6 +15,9 @@ const credentials = z.object({
   email: z.string().trim().toLowerCase().email('Bitte eine gültige E-Mail eingeben').max(254),
   password: z.string().min(8, 'Mindestens 8 Zeichen').max(128),
 });
+const profileBody = z.object({ name: z.string().trim().max(80).transform((v) => v || null) });
+const passwordBody = z.object({ currentPassword: z.string().max(128).optional(), newPassword: z.string().min(8, 'Mindestens 8 Zeichen').max(128) });
+const deleteBody = z.object({ email: z.string().trim().toLowerCase().max(254), password: z.string().max(128).optional() });
 const registerBody = credentials.extend({ name: z.string().trim().min(1).max(80).optional() });
 
 export interface AuthDeps { env: Env; users: UserRepo; google: GoogleClient | null }
@@ -56,6 +59,40 @@ export function authRouter({ env, users, google }: AuthDeps) {
     const user = id ? await users.findById(id) : null;
     if (!user) return void res.status(401).json({ error: 'unauthenticated' });
     res.json({ user: publicUser(user) });
+  }));
+
+  const currentUser = async (req: import('express').Request) => {
+    const id = await readSession(env, req.cookies?.[SESSION_COOKIE]);
+    return id ? users.findById(id) : null;
+  };
+
+  r.patch('/profile', ah(async (req, res) => {
+    const user = await currentUser(req);
+    if (!user) return void res.status(401).json({ error: 'unauthenticated' });
+    const { name } = profileBody.parse(req.body);
+    res.json({ user: publicUser(await users.update(user.id, { name })) });
+  }));
+
+  /** Passwort ändern. Wer schon eines hat, bestätigt es; reine Google-Konten können so erstmals eines setzen. */
+  r.post('/password', limiter, ah(async (req, res) => {
+    const user = await currentUser(req);
+    if (!user) return void res.status(401).json({ error: 'unauthenticated' });
+    const body = passwordBody.parse(req.body);
+    if (user.passwordHash && !(await verifyPassword(body.currentPassword ?? '', user.passwordHash))) return void res.status(403).json({ error: 'wrong_password' });
+    await users.update(user.id, { passwordHash: await hashPassword(body.newPassword) });
+    res.status(204).end();
+  }));
+
+  /** Konto löschen: E-Mail tippen (gegen Versehen), bei Passwort-Konten zusätzlich das Passwort. */
+  r.delete('/account', limiter, ah(async (req, res) => {
+    const user = await currentUser(req);
+    if (!user) return void res.status(401).json({ error: 'unauthenticated' });
+    const body = deleteBody.parse(req.body);
+    if (body.email !== user.email) return void res.status(400).json({ error: 'email_mismatch' });
+    if (user.passwordHash && !(await verifyPassword(body.password ?? '', user.passwordHash))) return void res.status(403).json({ error: 'wrong_password' });
+    await users.delete(user.id);
+    res.clearCookie(SESSION_COOKIE, { ...cookieOptions(env, 0), maxAge: undefined });
+    res.status(204).end();
   }));
 
   // --- Google OAuth ---------------------------------------------------------------

@@ -135,3 +135,41 @@ describe('Google OAuth', () => {
     expect(res.headers.location).toContain('/login?error=google');
   });
 });
+
+describe('Profil, Passwort, Konto löschen', () => {
+  const setup = async () => {
+    const { app, users } = makeApp();
+    const res = await request(app).post('/api/auth/register').send({ ...creds, name: 'Ada' });
+    return { app, users, cookie: cookieOf(res)! };
+  };
+
+  it('ändert den Namen und leert ihn bei leerer Eingabe', async () => {
+    const { app, cookie } = await setup();
+    expect((await request(app).patch('/api/auth/profile').set('Cookie', cookie).send({ name: '  Ada L.  ' })).body.user.name).toBe('Ada L.');
+    expect((await request(app).patch('/api/auth/profile').set('Cookie', cookie).send({ name: '   ' })).body.user.name).toBeNull();
+    expect((await request(app).patch('/api/auth/profile').set('Cookie', cookie).send({ name: 'x'.repeat(81) })).status).toBe(400);
+    expect((await request(app).patch('/api/auth/profile').send({ name: 'Eve' })).status).toBe(401);
+  });
+
+  it('Passwort ändern verlangt das alte und das neue wirkt beim Login', async () => {
+    const { app, cookie } = await setup();
+    const change = (body: object) => request(app).post('/api/auth/password').set('Cookie', cookie).send(body);
+    expect((await change({ currentPassword: 'falsch-falsch', newPassword: 'neues-passwort-1' })).status).toBe(403);
+    expect((await change({ newPassword: 'neues-passwort-1' })).status).toBe(403);
+    expect((await change({ currentPassword: creds.password, newPassword: 'kurz' })).status).toBe(400);
+    expect((await change({ currentPassword: creds.password, newPassword: 'neues-passwort-1' })).status).toBe(204);
+    expect((await request(app).post('/api/auth/login').send({ ...creds })).status).toBe(401);
+    expect((await request(app).post('/api/auth/login').send({ email: creds.email, password: 'neues-passwort-1' })).status).toBe(200);
+  });
+
+  it('Konto löschen braucht E-Mail und Passwort, danach ist die Sitzung ungültig', async () => {
+    const { app, users, cookie } = await setup();
+    const del = (body: object) => request(app).delete('/api/auth/account').set('Cookie', cookie).send(body);
+    expect((await del({ email: 'andere@example.com', password: creds.password })).status).toBe(400);
+    expect((await del({ email: 'ada@example.com', password: 'falsch-falsch' })).status).toBe(403);
+    expect(users.all).toHaveLength(1);
+    expect((await del({ email: 'Ada@Example.com', password: creds.password })).status).toBe(204);
+    expect(users.all).toHaveLength(0);
+    expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).status).toBe(401);
+  });
+});

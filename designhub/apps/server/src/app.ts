@@ -7,16 +7,19 @@ import { originCheck } from './middleware/security';
 import type { PrismaClient } from '@prisma/client';
 import { requireAuth } from './middleware/requireAuth';
 import { authRouter } from './routes/auth';
+import { assetsRouter } from './routes/assets';
 import { designsRouter } from './routes/designs';
 import { foldersRouter } from './routes/folders';
 import { imagesRouter } from './routes/images';
+import { shareRouter } from './routes/share';
 import { templatesRouter } from './routes/templates';
 import type { BackgroundRemover } from './services/backgroundRemoval';
 import type { GoogleClient } from './services/google';
+import type { ObjectStore } from './services/storage';
 import type { UserRepo } from './services/users';
 
 /** `db` ist optional, damit die Auth-Tests ohne Datenbank laufen; ohne `db` gibt es keine Daten-Routen. */
-export interface AppDeps { env: Env; users: UserRepo; google: GoogleClient | null; db?: PrismaClient; remover?: BackgroundRemover | null }
+export interface AppDeps { env: Env; users: UserRepo; google: GoogleClient | null; db?: PrismaClient; remover?: BackgroundRemover | null; store?: ObjectStore | null }
 
 /** Fabrik statt Singleton: Tests übergeben In-Memory-Repo und Google-Stub. */
 export function createApp(deps: AppDeps) {
@@ -42,6 +45,8 @@ export function createApp(deps: AppDeps) {
     app.use('/api/designs', guard, designsRouter(deps.db));
     app.use('/api/folders', guard, foldersRouter(deps.db));
     app.use('/api/templates', guard, templatesRouter(deps.db));
+    app.use('/api/assets', guard, assetsRouter(deps.db, deps.store ?? null));
+    app.use('/api/share', shareRouter(deps.db));
     app.use('/api/images', guard, imagesRouter(deps.remover ?? null));
   }
 

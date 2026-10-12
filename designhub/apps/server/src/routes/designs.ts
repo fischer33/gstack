@@ -4,7 +4,7 @@ import { MAX_SIZE, MIN_SIZE } from '@designhub/shared';
 import { ah } from '../middleware/security';
 import { userIdOf } from '../middleware/requireAuth';
 import type { Result } from '../services/designs';
-import { designService } from '../services/designs';
+import { designService, shareService, type SaveOutcome } from '../services/designs';
 import type { PrismaClient } from '@prisma/client';
 
 const size = z.number().int().min(MIN_SIZE).max(MAX_SIZE);
@@ -25,10 +25,27 @@ const createBody = z.object({ title: title.optional(), folderId: z.string().max(
 const patchBody = z.object({ title: title.optional(), folderId: z.string().max(40).nullable().optional() })
   .refine((b) => b.title !== undefined || b.folderId !== undefined, { message: 'Nichts zu ändern' });
 
+const saveBody = z.object({
+  width: size, height: size,
+  pages: z.array(z.unknown()).min(1).max(100),
+  version: z.number().int().min(1),
+  thumbnail: z.string().max(400_000).optional(),
+});
+const shareBody = z.object({ role: z.enum(['VIEW', 'EDIT']) });
+
+/** Gemeinsame Antwort für Speichern (Besitzer und Link): 200, 409 mit aktueller Version, 400 bei ungültigem Dokument. */
+export function sendSave(res: import('express').Response, out: SaveOutcome) {
+  if (out.ok) return void res.json(out.value);
+  if (out.error === 'conflict') return void res.status(409).json({ error: 'conflict', version: out.version });
+  if (out.error === 'invalid_document') return void res.status(400).json({ error: 'invalid_document', issues: out.issues });
+  res.status(404).json({ error: 'not_found' });
+}
+
 const STATUS = { not_found: 404, invalid_folder: 400, invalid_template: 400 } as const;
 
 export function designsRouter(db: PrismaClient) {
   const svc = designService(db);
+  const shares = shareService(db);
   const r = Router();
   /** Result → HTTP: Erfolg als JSON, Fehler mit passendem Status. */
   const send = <T>(res: import('express').Response, result: Result<T>, okStatus = 200) =>
@@ -41,6 +58,10 @@ export function designsRouter(db: PrismaClient) {
   r.delete('/trash', ah(async (_req, res) => { res.json({ deleted: await svc.emptyTrash(userIdOf(res)) }); }));
 
   r.get('/:id', ah(async (req, res) => { send(res, await svc.get(userIdOf(res), req.params.id)); }));
+  r.put('/:id', ah(async (req, res) => { sendSave(res, await svc.save({ id: req.params.id, ownerId: userIdOf(res) }, saveBody.parse(req.body))); }));
+  r.get('/:id/shares', ah(async (req, res) => { const x = await shares.list(userIdOf(res), req.params.id); x.ok ? res.json({ links: x.value }) : send(res, x); }));
+  r.post('/:id/shares', ah(async (req, res) => { send(res, await shares.create(userIdOf(res), req.params.id, shareBody.parse(req.body).role), 201); }));
+  r.delete('/:id/shares/:linkId', ah(async (req, res) => { const x = await shares.revoke(userIdOf(res), req.params.id, req.params.linkId); x.ok ? res.status(204).end() : send(res, x); }));
   r.patch('/:id', ah(async (req, res) => { send(res, await svc.update(userIdOf(res), req.params.id, patchBody.parse(req.body))); }));
   r.post('/:id/duplicate', ah(async (req, res) => { send(res, await svc.duplicate(userIdOf(res), req.params.id), 201); }));
   r.post('/:id/trash', ah(async (req, res) => { const x = await svc.trash(userIdOf(res), req.params.id); x.ok ? res.status(204).end() : send(res, x); }));

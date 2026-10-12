@@ -25,6 +25,10 @@ export function memoryRepo(): UserRepo & { all: UserRecord[] } {
       Object.assign(u, d);
       return u;
     },
+    async delete(id) {
+      const i = all.findIndex((x) => x.id === id);
+      if (i >= 0) all.splice(i, 1);
+    },
   };
 }
 
