@@ -4,7 +4,11 @@ import { cn } from '@/lib/utils';
 export interface MenuItem { label: string; icon?: ReactNode; onSelect(): void; danger?: boolean }
 
 /** Kleines Dropdown-Menü: schließt bei Klick außerhalb, Esc und nach Auswahl. */
-export function Menu({ label, trigger, items, align = 'right', className }: { label: string; trigger: ReactNode; items: MenuItem[]; align?: 'left' | 'right'; className?: string }) {
+export function Menu({ label, trigger, items, align = 'right', className, popoverClassName }: {
+  label: string; trigger: ReactNode; items: MenuItem[]; align?: 'left' | 'right'; className?: string;
+  /** Ersetzt die Standard-Platzierung (unterhalb des Auslösers), z. B. für Menüs am Bildschirmrand */
+  popoverClassName?: string;
+}) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
 
@@ -21,7 +25,7 @@ export function Menu({ label, trigger, items, align = 'right', className }: { la
     <div ref={root} className={cn('relative', className)}>
       <button type="button" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={(e) => { e.preventDefault(); setOpen((o) => !o); }}>{trigger}</button>
       {open && (
-        <div role="menu" className={cn('absolute z-30 mt-1 min-w-48 rounded-md border border-border bg-card p-1 shadow-lg', align === 'right' ? 'right-0' : 'left-0')}>
+        <div role="menu" className={cn('absolute z-30 min-w-48 rounded-md border border-border bg-card p-1 shadow-lg', popoverClassName ?? cn('mt-1', align === 'right' ? 'right-0' : 'left-0'))}>
           {items.map((it) => (
             <button key={it.label} role="menuitem" type="button"
               onClick={() => { setOpen(false); it.onSelect(); }}

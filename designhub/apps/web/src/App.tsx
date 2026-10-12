@@ -1,4 +1,5 @@
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/auth/AuthContext';
 import { GuestOnly, RequireAuth } from '@/auth/RouteGuards';
@@ -6,13 +7,15 @@ import { AppShell } from '@/components/dashboard/AppShell';
 import { ToastProvider } from '@/components/ui/toast';
 import { ApiError, UNAUTHORIZED_EVENT } from '@/lib/api';
 import { AuthPage } from '@/pages/AuthPage';
-import { EditorStub } from '@/pages/EditorStub';
 import { Home } from '@/pages/Home';
 import { Landing } from '@/pages/Landing';
 import { MyDesigns } from '@/pages/MyDesigns';
 import { SearchPage } from '@/pages/SearchPage';
 import { Trash } from '@/pages/Trash';
 import { ThemeProvider } from '@/theme/ThemeProvider';
+
+// Der Editor (inkl. Konva, ~300 kB) wird erst beim Öffnen eines Designs geladen.
+const EditorPage = lazy(() => import('@/pages/EditorPage').then((m) => ({ default: m.EditorPage })));
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -44,7 +47,7 @@ export function App() {
                     <Route path="trash" element={<Trash />} />
                     <Route path="search" element={<SearchPage />} />
                   </Route>
-                  <Route path="/design/:id" element={<EditorStub />} />
+                  <Route path="/design/:id" element={<Suspense fallback={<div className="grid min-h-screen place-items-center text-muted-foreground">Lädt…</div>}><EditorPage /></Suspense>} />
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
