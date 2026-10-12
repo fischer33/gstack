@@ -61,7 +61,8 @@ Im Dashboard ein Format oder eine Vorlage anklicken. Dann:
 | Formen | Füllung, Kontur, Konturstärke, Eckenradius; Linien und Pfeile: Farbe und Stärke |
 | Bilder | Helligkeit, Kontrast, Sättigung, Weichzeichnen, Spiegeln, Zuschneiden (Doppelklick oder Werkzeug, Enter beendet), Hintergrund entfernen |
 | Anordnen | Ebenenreihenfolge, Ausrichten (an der Seite oder aneinander), Verteilen, Gruppieren (Strg/Cmd+G), Gruppierung aufheben (Strg/Cmd+Umschalt+G), Position und Größe numerisch |
-| Smart Guides | Einrasten an Seitenmitte, Kanten und Mitten anderer Elemente; mit Alt aus |
+| Smart Guides | Einrasten an Seitenmitte, Kanten und Mitten anderer Elemente und an Hilfslinien; mit Alt aus |
+| Lineale und Hilfslinien | Lineale oben/links in Pixeln; aus einem Lineal eine Hilfslinie auf die Fläche ziehen, verschieben, zum Löschen zurück auf das Lineal ziehen; Umschalt+R blendet alles aus |
 | Ebenenpanel | Reihenfolge per Drag & Drop, ein-/ausblenden, sperren, mehrere wählen |
 | Seiten | unten hinzufügen, duplizieren, löschen, umsortieren (Ziehen oder Pfeile) |
 

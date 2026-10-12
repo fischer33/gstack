@@ -124,6 +124,8 @@ Nachstellen im Browser: `/design/<id>?bench=300` füllt das Design (nur im Speic
 
 **Vorlagen anwenden:** Das Format wird gleichmäßig angepasst und mittig platziert (`fitPageToSize`); bei belegter Seite fragt der Editor nach. Der Austausch ist ein Undo-Schritt.
 
+**Lineale und Hilfslinien:** Lineale oben/links (20 px) zeigen Dokumentpixel mit adaptiver Teilung (1/2/5 × 10^n, mindestens 70 Bildschirmpixel Abstand), der Seitenbereich ist heller hinterlegt. Ziehen aus dem oberen Lineal erzeugt eine waagerechte, aus dem linken eine senkrechte Hilfslinie. Hilfslinien liegen in `uiStore` (pro geöffnetem Design, nicht im Dokument), sind verschiebbar, werden durch Zurückziehen auf das Lineal gelöscht und sind zusätzliche Einrastziele für `computeSnap`. Umschalt+R blendet Lineale samt Hilfslinien aus; die Lineal-Mathematik (`rulerTicks`, `guidePosition`) ist rein und getestet. Der Canvas wird um die Linealbreite versetzt; Textbearbeitung und Zeiger-Umrechnung berücksichtigen das.
+
 **Gelernt (Fehlerklasse):** Konva-Knoten werden von React nur bei *geänderten* Eigenschaften aktualisiert. Endet eine Geste ohne Modelländerung (z. B. begrenzter Zuschnitt), bliebe der Knoten sonst verschoben stehen. Deshalb setzt `resetNodeToModel` die Knoten nach jeder Geste explizit auf den Modellzustand.
 
 **Noch offen:** Dauerhaftes Speichern der Bilder (bis Etappe f als Data-URL im Dokument), Bildfilter im SVG-Export (Etappe e), Touch-Gesten, Gruppen *innerhalb* von Gruppen bearbeiten.
