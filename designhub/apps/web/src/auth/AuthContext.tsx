@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useQueryClient } from '@tanstack/react-query';
 import { ApiError, UNAUTHORIZED_EVENT, api } from '@/lib/api';
 
-export interface User { id: string; email: string; name: string | null; avatarUrl: string | null }
+export interface User { id: string; email: string; name: string | null; avatarUrl: string | null; hasPassword: boolean }
 type Status = 'loading' | 'authed' | 'guest';
 
 interface AuthValue {
@@ -11,6 +11,8 @@ interface AuthValue {
   login(email: string, password: string): Promise<void>;
   register(name: string, email: string, password: string): Promise<void>;
   logout(): Promise<void>;
+  updateName(name: string): Promise<void>;
+  deleteAccount(email: string, password?: string): Promise<void>;
 }
 
 const Ctx = createContext<AuthValue | null>(null);
@@ -41,13 +43,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [qc]);
   const logout = useCallback(async () => { await api('/auth/logout', { method: 'POST' }); qc.clear(); set(null); }, [qc]);
 
+  const updateName = useCallback(async (name: string) => {
+    const { user } = await api<{ user: User }>('/auth/profile', { method: 'PATCH', body: { name } });
+    set(user);
+  }, []);
+  const deleteAccount = useCallback(async (email: string, password?: string) => {
+    await api('/auth/account', { method: 'DELETE', body: { email, password } });
+    qc.clear(); set(null);
+  }, [qc]);
+
   useEffect(() => {
     const onUnauthorized = () => { qc.clear(); set(null); };
     window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
   }, [qc]);
 
-  const value = useMemo(() => ({ status, user, login, register, logout }), [status, user, login, register, logout]);
+  const value = useMemo(() => ({ status, user, login, register, logout, updateName, deleteAccount }), [status, user, login, register, logout, updateName, deleteAccount]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

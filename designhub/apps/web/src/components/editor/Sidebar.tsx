@@ -1,5 +1,6 @@
 import { Layers, LayoutTemplate, Palette, Shapes, Type, Upload, X } from 'lucide-react';
 import { Suspense, lazy, useState, type ComponentType } from 'react';
+import { useParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 // Panels laden erst beim ersten Öffnen (Lazy Loading)
@@ -24,6 +25,8 @@ type TabId = (typeof TABS)[number]['id'];
 
 /** Linke Seitenleiste mit sechs Tabs; am Handy unten, das Panel öffnet darüber. */
 export function Sidebar() {
+  const { token } = useParams();
+  const tabs = token ? TABS.filter((t) => t.id !== 'templates') : TABS; // Vorlagen brauchen ein Konto; Link-Bearbeiter sind anonym
   const [tab, setTab] = useState<TabId | null>('elements');
   const Panel = tab ? panels[tab] : null;
   const current = TABS.find((t) => t.id === tab);
@@ -31,7 +34,7 @@ export function Sidebar() {
   return (
     <aside className="flex shrink-0 flex-col-reverse border-border md:flex-row md:border-r">
       <nav aria-label="Werkzeuge" className="flex shrink-0 items-center justify-around gap-0.5 border-t border-border bg-background p-1 md:w-[4.5rem] md:flex-col md:justify-start md:border-r md:border-t-0 md:p-1.5">
-        {TABS.map(({ id, label, Icon }) => (
+        {tabs.map(({ id, label, Icon }) => (
           <button key={id} onClick={() => setTab(tab === id ? null : id)} aria-label={label} aria-pressed={tab === id}
             className={cn('flex h-14 w-full flex-col items-center justify-center gap-0.5 rounded-md text-[11px] font-medium transition-colors md:w-16',
               tab === id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}>

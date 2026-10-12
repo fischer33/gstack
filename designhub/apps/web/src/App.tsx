@@ -15,6 +15,8 @@ import { Trash } from '@/pages/Trash';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
 // Der Editor (inkl. Konva, ~300 kB) wird erst beim Öffnen eines Designs geladen.
+const SharePage = lazy(() => import('@/pages/SharePage').then((m) => ({ default: m.SharePage })));
+const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const EditorPage = lazy(() => import('@/pages/EditorPage').then((m) => ({ default: m.EditorPage })));
 
 const queryClient = new QueryClient({
@@ -45,10 +47,12 @@ export function App() {
                     <Route index element={<Home />} />
                     <Route path="designs" element={<MyDesigns />} />
                     <Route path="trash" element={<Trash />} />
+                    <Route path="settings" element={<Suspense fallback={null}><SettingsPage /></Suspense>} />
                     <Route path="search" element={<SearchPage />} />
                   </Route>
                   <Route path="/design/:id" element={<Suspense fallback={<div className="grid min-h-screen place-items-center text-muted-foreground">Lädt…</div>}><EditorPage /></Suspense>} />
                 </Route>
+                <Route path="/s/:token" element={<Suspense fallback={<div className="grid min-h-screen place-items-center text-muted-foreground">Lädt…</div>}><SharePage /></Suspense>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </BrowserRouter>

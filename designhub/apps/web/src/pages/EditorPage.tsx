@@ -1,7 +1,8 @@
 import type Konva from 'konva';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { useDesign } from '@/api/hooks';
+import { useDesign, useSharedDesign } from '@/api/hooks';
+import { ConflictDialog } from '@/components/editor/ConflictDialog';
 import { ContextToolbar } from '@/components/editor/ContextToolbar';
 import { EditorHeader } from '@/components/editor/EditorHeader';
 import { PageStrip } from '@/components/editor/PageStrip';
@@ -17,12 +18,21 @@ import { TextEditorOverlay } from '@/editor/engine/TextEditorOverlay';
 import { useEditorShortcuts } from '@/editor/engine/useEditorShortcuts';
 import { useDocumentStore } from '@/editor/store/documentStore';
 import { useUiStore } from '@/editor/store/uiStore';
+import { useAutosave } from '@/editor/save/useAutosave';
 
 /** Editor-Seite: lädt das Design in den Store und hängt Canvas, Werkzeuge und Tastenkürzel ein. */
 export function EditorPage() {
-  const { id = '' } = useParams();
+  const { id = '', token } = useParams();
   const [params] = useSearchParams();
-  const { data: design, isLoading, isError } = useDesign(id);
+  const owner = useDesign(id, !token);
+  const shared = useSharedDesign(token);
+  // Über einen Bearbeiten-Link (/s/:token) läuft derselbe Editor ohne Anmeldung; gespeichert wird dann über den Link.
+  const design = useMemo(() => (token ? (shared.data && { ...shared.data, id: token }) : owner.data), [token, shared.data, owner.data]);
+  const isLoading = token ? shared.isLoading : owner.isLoading;
+  const isError = token ? shared.isError : owner.isError;
+  const [ready, setReady] = useState(false);
+  const benchMode = Number(params.get('bench')) > 0;
+  useAutosave(token ? { kind: 'share', token } : { kind: 'owner', id }, design?.version, ready, !benchMode);
   const stageRef = useRef<Konva.Stage>(null);
   const loadedId = useRef<string | null>(null);
   const { addImage } = useAddElements();
@@ -42,6 +52,7 @@ export function EditorPage() {
       const { load, mutate } = useDocumentStore.getState();
       useUiStore.getState().clearSelection();
       load({ version: 1, width: design.width, height: design.height, pages: design.pages });
+      setReady(true);
       // Leistungstest: ?bench=300 fügt 300 Testobjekte (nur im Speicher) hinzu
       const n = Number(params.get('bench'));
       if (Number.isInteger(n) && n > 0 && n <= 5000) {
@@ -51,14 +62,7 @@ export function EditorPage() {
     return () => { cancelled = true; if (!useDocumentStore.getState().doc) loadedId.current = null; };
   }, [design, params]);
 
-  useEffect(() => () => { loadedId.current = null; useDocumentStore.getState().reset(); useUiStore.getState().clearSelection(); useUiStore.getState().clearGuides(); }, [id]);
-
-  // Warnung beim Schließen des Tabs, solange es noch kein Speichern gibt (Etappe f)
-  useEffect(() => {
-    const warn = (e: BeforeUnloadEvent) => { if (useDocumentStore.getState().revision > 0) e.preventDefault(); };
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, []);
+  useEffect(() => () => { loadedId.current = null; setReady(false); useDocumentStore.getState().reset(); useUiStore.getState().clearSelection(); useUiStore.getState().clearGuides(); }, [id]);
 
   // Bilder per Einfügen (Strg+V) und Drag & Drop
   useEffect(() => {
@@ -85,7 +89,8 @@ export function EditorPage() {
 
   return (
     <div className="flex h-screen flex-col" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); [...e.dataTransfer.files].forEach((f) => void addImage(f)); }}>
-      <EditorHeader title={design.title} />
+      <EditorHeader title={design.title} designId={token ? null : design.id} />
+      <ConflictDialog />
       <ContextToolbar />
       <div className="flex min-h-0 flex-1 flex-col-reverse md:flex-row">
         <Sidebar />

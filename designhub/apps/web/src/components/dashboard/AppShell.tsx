@@ -1,4 +1,4 @@
-import { FolderPlus, Folder, Home as HomeIcon, Images, LogOut, Menu as MenuIcon, Plus, Search, Trash2, X } from 'lucide-react';
+import { FolderPlus, Folder, Home as HomeIcon, Images, LogOut, Menu as MenuIcon, Plus, Search, Settings, Trash2, X } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
@@ -59,6 +59,7 @@ export function AppShell() {
       <NavLink to="/app" end className={link}><HomeIcon className="h-4 w-4" /> Start</NavLink>
       <NavLink to="/app/designs" end className={({ isActive }) => link({ isActive: isActive && !params.get('folder') })}><Images className="h-4 w-4" /> Meine Designs</NavLink>
       <NavLink to="/app/trash" className={link}><Trash2 className="h-4 w-4" /> Papierkorb</NavLink>
+      <NavLink to="/app/settings" className={link}><Settings className="h-4 w-4" /> Einstellungen</NavLink>
 
       <div className="mt-6 flex items-center justify-between px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Ordner
@@ -89,7 +90,7 @@ export function AppShell() {
         <Button onClick={() => ctx.openCreate()} className="shrink-0"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Design erstellen</span><span className="sm:hidden">Neu</span></Button>
         <span className="hidden sm:block"><ThemeToggle /></span>
         <Menu label="Konto" trigger={<span className="grid h-9 w-9 place-items-center rounded-full bg-brand text-sm font-bold text-primary-foreground">{initial}</span>}
-          items={[{ label: `Abmelden (${user?.email})`, icon: <LogOut className="h-4 w-4" />, onSelect: () => void logout() }]} />
+          items={[{ label: 'Einstellungen', icon: <Settings className="h-4 w-4" />, onSelect: () => navigate('/app/settings') }, { label: `Abmelden (${user?.email})`, icon: <LogOut className="h-4 w-4" />, onSelect: () => void logout() }]} />
       </header>
 
       <div className="flex flex-1">
