@@ -4,9 +4,13 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useDesign } from '@/api/hooks';
 import { ContextToolbar } from '@/components/editor/ContextToolbar';
 import { EditorHeader } from '@/components/editor/EditorHeader';
-import { ToolRail, useAddElements } from '@/components/editor/ToolRail';
+import { PageStrip } from '@/components/editor/PageStrip';
+import { Sidebar } from '@/components/editor/Sidebar';
+import { useAddElements } from '@/components/editor/useAddElements';
 import { buttonVariants } from '@/components/ui/button';
 import { makeBenchElements } from '@/editor/engine/bench';
+import { fontsOf } from '@/editor/lib/docFonts';
+import { ensureFonts } from '@/editor/lib/fonts';
 import { EditorCanvas } from '@/editor/engine/EditorCanvas';
 import { TextEditorOverlay } from '@/editor/engine/TextEditorOverlay';
 import { useEditorShortcuts } from '@/editor/engine/useEditorShortcuts';
@@ -25,17 +29,24 @@ export function EditorPage() {
   if (import.meta.env.DEV) (window as unknown as { __designhub: Record<string, unknown> }).__designhub.getStage = () => stageRef.current;
 
   // Design genau einmal pro ID in den Store laden (ein späteres Refetch darf Änderungen nicht überschreiben).
+  // Vorher die benötigten Schriften laden, damit Texte sofort richtig umbrechen und die Höhen stimmen.
   useEffect(() => {
     if (!design || loadedId.current === design.id) return;
     loadedId.current = design.id;
-    const { load, mutate } = useDocumentStore.getState();
-    useUiStore.getState().clearSelection();
-    load({ version: 1, width: design.width, height: design.height, pages: design.pages });
-    // Leistungstest: ?bench=300 fügt 300 Testobjekte (nur im Speicher) hinzu
-    const n = Number(params.get('bench'));
-    if (Number.isInteger(n) && n > 0 && n <= 5000) {
-      mutate((d) => { d.pages[0].elements.push(...makeBenchElements(n, d)); }, { silent: true });
-    }
+    let cancelled = false;
+    void (async () => {
+      await ensureFonts(design.pages.flatMap((p) => [...fontsOf(p.elements)]));
+      if (cancelled) return;
+      const { load, mutate } = useDocumentStore.getState();
+      useUiStore.getState().clearSelection();
+      load({ version: 1, width: design.width, height: design.height, pages: design.pages });
+      // Leistungstest: ?bench=300 fügt 300 Testobjekte (nur im Speicher) hinzu
+      const n = Number(params.get('bench'));
+      if (Number.isInteger(n) && n > 0 && n <= 5000) {
+        mutate((d) => { d.pages[0].elements.push(...makeBenchElements(n, d)); }, { silent: true });
+      }
+    })();
+    return () => { cancelled = true; if (!useDocumentStore.getState().doc) loadedId.current = null; };
   }, [design, params]);
 
   useEffect(() => () => { loadedId.current = null; useDocumentStore.getState().reset(); useUiStore.getState().clearSelection(); }, [id]);
@@ -75,11 +86,14 @@ export function EditorPage() {
       <EditorHeader title={design.title} />
       <ContextToolbar />
       <div className="flex min-h-0 flex-1 flex-col-reverse md:flex-row">
-        <ToolRail />
-        <main className="relative min-h-0 min-w-0 flex-1">
-          <EditorCanvas stageRef={stageRef} />
-          <TextEditorOverlay />
-        </main>
+        <Sidebar />
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <main className="relative min-h-0 flex-1">
+            <EditorCanvas stageRef={stageRef} />
+            <TextEditorOverlay />
+          </main>
+          <PageStrip />
+        </div>
       </div>
     </div>
   );

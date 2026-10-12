@@ -22,6 +22,8 @@ export function useEditorShortcuts() {
       if (isTyping(e.target) || ui().editingId) return;
       const mod = e.ctrlKey || e.metaKey, key = e.key.toLowerCase();
 
+      if (ui().croppingId && (e.key === 'Enter' || e.key === 'Escape')) { e.preventDefault(); return ui().setCropping(null); }
+
       if (e.code === 'Space') { e.preventDefault(); if (!ui().spaceDown) ui().setSpaceDown(true); return; }
 
       if (mod) {
@@ -38,6 +40,12 @@ export function useEditorShortcuts() {
             const clip = ui().clipboard;
             if (!clip.length) return; // leer: das Browser-paste-Event kümmert sich um Bilder aus der Zwischenablage
             e.preventDefault(); return ui().select(doc().pasteElements(clip));
+          }
+          case 'g': { // Strg+G gruppiert, Strg+Umschalt+G löst die Gruppe auf
+            e.preventDefault();
+            const els = selected();
+            if (e.shiftKey) { const g = els.length === 1 && els[0].type === 'group' ? els[0] : null; if (g) ui().select(doc().ungroup(g.id)); return; }
+            const id = doc().group(els.map((x) => x.id)); if (id) ui().select([id]); return;
           }
           case 'd': { e.preventDefault(); const ids = selected().map((x) => x.id); if (ids.length) ui().select(doc().duplicateElements(ids)); return; }
           case '0': e.preventDefault(); return fitToView();

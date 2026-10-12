@@ -1,8 +1,9 @@
-import type Konva from 'konva';
-import { memo, useLayoutEffect, useRef } from 'react';
-import { Arrow, Ellipse, Group, Image as KImage, Line, Rect, Text } from 'react-konva';
-import { starUnitPoints, type Element, type TextElement } from '@designhub/shared';
+import Konva from 'konva';
+import { memo, useEffect, useLayoutEffect, useRef } from 'react';
+import { Arrow, Ellipse, Group, Image as KImage, Line, Path, Rect, Text } from 'react-konva';
+import { isSafePathData, starUnitPoints, type Element, type ImageElement, type TextElement } from '@designhub/shared';
 import { fromNodePose, toNodePose } from './geometry';
+import { filterParams, hasFilters } from './imageFilters';
 import { useHtmlImage } from './useHtmlImage';
 
 /** Wird als `name` an jeden Wurzelknoten gehängt, damit der Canvas Elemente von Hilfsobjekten unterscheiden kann. */
@@ -17,6 +18,17 @@ export function nodeProps(el: Element) {
   return toNodePose(el);
 }
 
+/**
+ * Setzt einen Knoten hart auf den Modellzustand zurück (Position, Drehung, Skalierung, Textbreite).
+ * Nötig, weil React nur *geänderte* Eigenschaften neu setzt: Endet eine Geste ohne Modelländerung (z. B. ein auf die
+ * Bildgrenze begrenzter Zuschnitt), bliebe der Knoten sonst in seinem von Konva verschobenen Zustand stehen.
+ */
+export function resetNodeToModel(node: Konva.Node, el: Element) {
+  const pose = nodeProps(el);
+  node.setAttrs({ x: pose.x, y: pose.y, rotation: pose.rotation, scaleX: 1, scaleY: 1 });
+  if (el.type === 'text') node.width(el.width); // die Seitengriffe setzen die Textbreite live am Knoten
+}
+
 /** Konva-Knoten (nach Verschieben/Transformieren) → Modellposition bei gegebener Größe. */
 export function modelBoxFromNode(el: Element, node: Konva.Node, width: number, height: number) {
   if (isCenterOrigin(el)) return { x: node.x() - width / 2, y: node.y() - height / 2, width, height, rotation: node.rotation() };
@@ -29,6 +41,8 @@ export interface NodeHandlers {
   onDragMove(e: Konva.KonvaEventObject<DragEvent>): void;
   onDragEnd(e: Konva.KonvaEventObject<DragEvent>): void;
   onTextDblClick(id: string): void;
+  /** Doppelklick auf ein Bild: Zuschneiden starten */
+  onImageDblClick(id: string): void;
   /** Gemessene Texthöhe zurückmelden (ohne Undo-Eintrag) */
   onMeasured(id: string, height: number): void;
 }
@@ -42,11 +56,15 @@ const HIT_FILL = 'rgba(0,0,0,0.001)';
  * Änderung nur das betroffene Element neu gerendert wird (wichtig bei 100+ Objekten).
  */
 export const ElementNode = memo(function ElementNode({ el, handlers, hidden, interactive = true }: Props) {
+  // Kinder einer Gruppe bleiben anklickbar (listening), reagieren aber nicht selbst: Klicks und Ziehen
+  // steigen zum Gruppenknoten auf, der die Gruppe als Ganzes auswählt und bewegt.
   const root = {
-    id: el.id, name: ELEMENT_NAME, opacity: el.opacity, visible: !hidden, listening: interactive,
-    draggable: interactive && !el.locked,
-    onMouseDown: handlers.onDown, onTouchStart: handlers.onDown,
-    onDragStart: handlers.onDragStart, onDragMove: handlers.onDragMove, onDragEnd: handlers.onDragEnd,
+    id: el.id, name: ELEMENT_NAME, opacity: el.opacity, visible: !hidden, listening: true,
+    ...(interactive ? {
+      draggable: !el.locked,
+      onMouseDown: handlers.onDown, onTouchStart: handlers.onDown,
+      onDragStart: handlers.onDragStart, onDragMove: handlers.onDragMove, onDragEnd: handlers.onDragEnd,
+    } : {}),
     ...nodeProps(el),
   };
   const size = { width: el.width, height: el.height };
@@ -79,11 +97,24 @@ export const ElementNode = memo(function ElementNode({ el, handlers, hidden, int
       );
     }
     case 'text': return <TextNode el={el} root={root} onMeasured={handlers.onMeasured} onDblClick={handlers.onTextDblClick} />;
-    case 'image': return <ImageNode el={el} root={root} />;
+    case 'image': return <ImageNode el={el} root={root} onDblClick={handlers.onImageDblClick} />;
     case 'group':
-      return <Group {...root} {...size}>{el.children.map((c) => <ElementNode key={c.id} el={c} handlers={handlers} interactive={false} />)}</Group>;
-    case 'icon':
-      return null; // Icons enthalten fremdes SVG; kommen mit Sanitizing in Etappe (d)
+      // Unsichtbarer Rahmen in Gruppengröße, damit der Auswahlrahmen dem Modell entspricht
+      return (
+        <Group {...root} {...size}>
+          <Rect {...size} fill={HIT_FILL} listening={false} />
+          {el.children.map((c) => <ElementNode key={c.id} el={c} handlers={handlers} interactive={false} />)}
+        </Group>
+      );
+    case 'icon': {
+      if (!isSafePathData(el.path) || !(el.viewBox > 0)) return null; // nur geprüfte Pfaddaten werden gezeichnet
+      return (
+        <Group {...root} {...size}>
+          <Rect {...size} fill={HIT_FILL} listening={false} />
+          <Path data={el.path} fill={el.fill} scaleX={el.width / el.viewBox} scaleY={el.height / el.viewBox} perfectDrawEnabled={false} />
+        </Group>
+      );
+    }
   }
 });
 
@@ -102,14 +133,39 @@ function TextNode({ el, root, onMeasured, onDblClick }: { el: TextElement; root:
       width={el.width} text={el.text} fontFamily={`${el.fontFamily}, sans-serif`} fontSize={el.fontSize} fontStyle={fontStyle}
       fill={el.fill} align={el.align} lineHeight={el.lineHeight} letterSpacing={el.letterSpacing}
       textDecoration={el.underline ? 'underline' : ''} wrap="word" perfectDrawEnabled={false}
+      stroke={el.stroke} strokeWidth={el.strokeWidth ?? 0} fillAfterStrokeEnabled strokeScaleEnabled={false}
+      shadowEnabled={!!el.shadow} shadowColor={el.shadow?.color} shadowBlur={el.shadow?.blur ?? 0} shadowOffsetX={el.shadow?.offsetX ?? 0}
+      shadowOffsetY={el.shadow?.offsetY ?? 0} shadowOpacity={el.shadow?.opacity ?? 1}
     />
   );
 }
 
-function ImageNode({ el, root }: { el: Extract<Element, { type: 'image' }>; root: object }) {
+function ImageNode({ el, root, onDblClick }: { el: ImageElement; root: object; onDblClick: (id: string) => void }) {
   const img = useHtmlImage(el.src);
+  const ref = useRef<Konva.Image>(null);
+  const active = hasFilters(el.filters);
+  // Konva-Filter wirken nur auf einem Cache. Nur cachen, solange ein Filter aktiv ist (spart Speicher), und bei
+  // Größen-/Ausschnittswechsel neu aufbauen.
+  useEffect(() => {
+    const n = ref.current;
+    if (!n || !img) return;
+    if (active) n.cache(); else n.clearCache();
+    n.getLayer()?.batchDraw();
+  }, [img, active, el.width, el.height, el.crop?.x, el.crop?.y, el.crop?.width, el.crop?.height, el.filters.blur]);
+
   const size = { width: el.width, height: el.height };
   // Solange das Bild lädt (oder fehlt), bleibt ein grauer Platzhalter greifbar.
   if (!img) return <Rect {...root} {...size} fill="#d9dbe3" perfectDrawEnabled={false} />;
-  return <KImage {...root} {...size} image={img} perfectDrawEnabled={false} />;
+  const p = filterParams(el.filters);
+  return (
+    // Gruppe als Wurzel (Position, Drehung, Ziehen); das Spiegeln passiert am Bild darin
+    <Group {...root} {...size} onDblClick={() => onDblClick(el.id)} onDblTap={() => onDblClick(el.id)}>
+      <KImage
+        ref={ref} image={img} {...size} crop={el.crop} cornerRadius={el.cornerRadius ?? 0}
+        x={el.flipX ? el.width : 0} y={el.flipY ? el.height : 0} scaleX={el.flipX ? -1 : 1} scaleY={el.flipY ? -1 : 1}
+        filters={active ? [Konva.Filters.Brighten, Konva.Filters.Contrast, Konva.Filters.HSL, Konva.Filters.Blur] : []}
+        brightness={p.brightness} contrast={p.contrast} saturation={p.saturation} blurRadius={p.blurRadius} perfectDrawEnabled={false}
+      />
+    </Group>
+  );
 }

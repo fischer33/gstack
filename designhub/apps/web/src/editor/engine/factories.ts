@@ -1,4 +1,5 @@
-import { newId, type ImageElement, type ShapeElement, type ShapeKind, type TextElement } from '@designhub/shared';
+import { newId, type IconElement, type ImageElement, type ShapeElement, type ShapeKind, type TextElement } from '@designhub/shared';
+import { ICON_VIEWBOX, type IconDef } from '../lib/icons';
 
 interface PageSize { width: number; height: number }
 export type TextKind = 'heading' | 'subheading' | 'body';
@@ -43,7 +44,39 @@ export function createShape(page: PageSize, kind: ShapeKind): ShapeElement {
 export function createImage(page: PageSize, src: string, natural: { width: number; height: number }): ImageElement {
   const k = Math.min(1, (page.width * 0.6) / natural.width, (page.height * 0.6) / natural.height);
   const w = Math.max(20, Math.round(natural.width * k)), h = Math.max(20, Math.round(natural.height * k));
-  return { ...base(page, w, h), type: 'image', src, flipX: false, flipY: false, filters: { brightness: 0, contrast: 0, saturation: 0, blur: 0 } };
+  return { ...base(page, w, h), type: 'image', src, naturalWidth: natural.width, naturalHeight: natural.height, flipX: false, flipY: false, filters: { brightness: 0, contrast: 0, saturation: 0, blur: 0 } };
+}
+
+export function createIcon(page: PageSize, icon: IconDef): IconElement {
+  const size = Math.round(Math.min(page.width, page.height) * 0.2);
+  return { ...base(page, size, size), type: 'icon', name: icon.name, path: icon.path, viewBox: ICON_VIEWBOX, fill: '#7d2ae8' };
+}
+
+/** Sticker sind Emoji als Text: einfärben lässt sich nichts, dafür sind sie auf jedem Gerät sofort verfügbar. */
+export function createSticker(page: PageSize, emoji: string): TextElement {
+  const fontSize = Math.round(Math.min(page.width, page.height) * 0.18);
+  return {
+    ...base(page, Math.round(fontSize * 1.5), Math.round(fontSize * 1.2)), type: 'text', name: 'Sticker', text: emoji,
+    fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji', fontSize, fontWeight: 400, italic: false, underline: false,
+    align: 'center', fill: '#000000', lineHeight: 1.2, letterSpacing: 0,
+  };
+}
+
+/** Fertige Schriftkombinationen für das Text-Panel. Größe relativ zur kürzeren Seite. */
+export interface TextPreset { label: string; sample: string; font: string; weight: 400 | 700; size: number; fill: string; spacing?: number; italic?: boolean }
+export const TEXT_PRESETS: TextPreset[] = [
+  { label: 'Plakat', sample: 'GROSSER TITEL', font: 'Bebas Neue', weight: 400, size: 0.14, fill: '#14161f', spacing: 2 },
+  { label: 'Elegant', sample: 'Elegante Zeile', font: 'Playfair Display', weight: 700, size: 0.08, fill: '#2b1a20' },
+  { label: 'Handschrift', sample: 'Von Hand', font: 'Pacifico', weight: 400, size: 0.09, fill: '#c2185b' },
+  { label: 'Modern', sample: 'Modern & klar', font: 'Montserrat', weight: 700, size: 0.07, fill: '#0f4c5c' },
+  { label: 'Schreibmaschine', sample: 'Typed note', font: 'Space Mono', weight: 400, size: 0.05, fill: '#1f3a2e' },
+  { label: 'Magazin', sample: 'Magazin', font: 'Abril Fatface', weight: 400, size: 0.11, fill: '#d9482b' },
+];
+
+export function createTextFromPreset(page: PageSize, p: TextPreset): TextElement {
+  const t = createText(page, 'heading');
+  const fontSize = Math.max(12, Math.round(Math.min(page.width, page.height) * p.size));
+  return { ...t, text: p.sample, fontFamily: p.font, fontWeight: p.weight, fontSize, fill: p.fill, letterSpacing: p.spacing ?? 0, italic: !!p.italic, height: Math.round(fontSize * 1.2) };
 }
 
 export const TEXT_KINDS: { kind: TextKind; label: string }[] = [
