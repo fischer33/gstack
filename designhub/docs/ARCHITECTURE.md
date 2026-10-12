@@ -82,7 +82,7 @@ Schemaänderungen erhöhen `DOCUMENT_VERSION` und bekommen eine Migrationsfunkti
 
 **Ablauf einer Interaktion:** Während Ziehen, Skalieren und Drehen arbeitet Konva direkt auf den Knoten (kein React-Render pro Mausbewegung). Erst beim Loslassen schreibt der Editor *einen* Schritt in den Store (`updateEach`). Bei Mehrfachauswahl verschiebt der Konva-Transformer alle gewählten Knoten selbst; der Editor hängt sich nur an `dragend`.
 
-**Store:** `documentStore` (Dokument + Verlauf) und `uiStore` (Auswahl, Zoom, Pan) sind getrennt; Auswahl und Zoom landen nicht in der History. Undo/Redo basiert auf Immer-Patches (Patch + Gegen-Patch je Schritt, max. 200). Schnell aufeinanderfolgende Änderungen mit gleichem `coalesce`-Schlüssel (Pfeiltasten, Farb- und Deckkraft-Regler) werden zu einem Schritt verschmolzen. `silent`-Änderungen (gemessene Texthöhe) erzeugen keinen Undo-Eintrag. Die `revision` zählt jede Änderung und ist die Grundlage für Autosave in Etappe (f).
+**Store:** `documentStore` (Dokument + Verlauf) und `uiStore` (Auswahl, Zoom, Pan) sind getrennt; Auswahl und Zoom landen nicht in der History. Undo/Redo basiert auf Immer-Patches (Patch + Gegen-Patch je Schritt, max. 200). Schnell aufeinanderfolgende Änderungen mit gleichem `coalesce`-Schlüssel (Pfeiltasten, Farb- und Deckkraft-Regler) werden zu einem Schritt verschmolzen. `silent`-Änderungen (gemessene Texthöhe) erzeugen keinen Undo-Eintrag. Die `revision` zählt jede Änderung und ist die Grundlage für Autosave (Abschnitt 5b).
 
 **Ebenen im Canvas:** (1) Seite, (2) Elemente, (3) Auswahl-Transformer und Aufziehrahmen. Elemente sind `memo`-Komponenten; durch das strukturelle Teilen von Immer rendert eine Änderung nur das betroffene Element neu.
 
@@ -128,7 +128,7 @@ Nachstellen im Browser: `/design/<id>?bench=300` füllt das Design (nur im Speic
 
 **Gelernt (Fehlerklasse):** Konva-Knoten werden von React nur bei *geänderten* Eigenschaften aktualisiert. Endet eine Geste ohne Modelländerung (z. B. begrenzter Zuschnitt), bliebe der Knoten sonst verschoben stehen. Deshalb setzt `resetNodeToModel` die Knoten nach jeder Geste explizit auf den Modellzustand.
 
-**Noch offen:** Dauerhaftes Speichern der Bilder (bis Etappe f als Data-URL im Dokument), Touch-Gesten, Gruppen *innerhalb* von Gruppen bearbeiten.
+**Noch offen:** Touch-Gesten, Gruppen *innerhalb* von Gruppen bearbeiten.
 
 ## 5a. Export und Vorlagen (Etappe e)
 
@@ -138,7 +138,21 @@ Nachstellen im Browser: `/design/<id>?bench=300` füllt das Design (nur im Speic
 
 **Grenzen:** Kante ≤ 16 384 px und ≤ 64 Mio. Pixel (`exportOptions.ts`); der Dialog sperrt zu große Faktoren, statt den Browser still scheitern zu lassen.
 
-**Vorlagen:** 21 generierte (`prisma/seed.ts`) plus 14 handgestaltete als JSON (`prisma/templates/*.json`, erzeugt mit `build-templates.ts`), davon drei mehrseitig. Jede Vorlage läuft vor dem Speichern durch `parseDesignDocument` (zod-Schema in `packages/shared/src/schema.ts`: Farben, Schriftnamen, Bild-URLs, Pfaddaten, Größen- und Tiefenlimits); dasselbe Schema soll in Etappe (f) das Speichern von Designs absichern. Mehrseitige Vorlagen ersetzen die aktive Seite und fügen die übrigen dahinter ein (`applyTemplatePages`, ein Undo-Schritt).
+**Vorlagen:** 21 generierte (`prisma/seed.ts`) plus 14 handgestaltete als JSON (`prisma/templates/*.json`, erzeugt mit `build-templates.ts`), davon drei mehrseitig. Jede Vorlage läuft vor dem Speichern durch `parseDesignDocument` (zod-Schema in `packages/shared/src/schema.ts`: Farben, Schriftnamen, Bild-URLs, Pfaddaten, Größen- und Tiefenlimits); dasselbe Schema sichert auch das Speichern von Designs ab (Abschnitt 5b). Mehrseitige Vorlagen ersetzen die aktive Seite und fügen die übrigen dahinter ein (`applyTemplatePages`, ein Undo-Schritt).
+
+## 5b. Speichern, Teilen, Uploads (Etappe f)
+
+**Autosave** (`apps/web/src/editor/save/autosave.ts`): eine kleine Zustandsmaschine ohne React und Netzwerk (mit Fake-Timern getestet). Entprellt 5 s, höchstens 30 s Wartezeit bei Dauerbearbeitung, nie zwei Speichervorgänge gleichzeitig, Änderungen während des Speicherns lösen genau einen Folgevorgang aus, Fehler werden nach 5/10/20/60 s wiederholt. `useAutosave` hängt sie an `documentStore.revision`, Strg+S, `visibilitychange` und `beforeunload`; beim Verlassen der Seite wird ein letztes Mal gespeichert (der Controller hält dafür den letzten Dokumentstand, weil der Store dann schon geleert ist). Die Vorschau (PNG, 360 px, bei Fotos JPEG) wird mit dem Export-Renderer erzeugt und nur neu gerechnet, wenn sich die erste Seite geändert hat.
+
+**Optimistic Locking:** `PUT /api/designs/:id` trägt die erwartete `version`; der Server aktualisiert mit `WHERE version = :erwartet` und erhöht sie atomar. Veraltet → `409 { error: 'conflict', version }`, nichts wird überschrieben. „Meine Version behalten“ speichert erneut mit der gemeldeten Serverversion. Zwei gleichzeitige Speichervorgänge: genau einer gewinnt (Integrationstest).
+
+**Validierung:** Jedes gespeicherte Dokument läuft durch `parseDesignDocument` (Abschnitt 5a); ungültig → `400 invalid_document` mit den ersten Fundstellen. Der Server nimmt Vorschaubilder nur als PNG/JPEG/WebP-Data-URL bis 400 000 Zeichen an, sonst erzeugt er eine SVG-Vorschau. Das JSON-Limit liegt bei 15 MB (`413 too_large` mit verständlicher Meldung im Editor). Weil gespeicherte Dokumente später als Inline-SVG im Betrachter erscheinen, ist diese Prüfung auch die Grundlage gegen eingeschleusten Code.
+
+**Freigabe-Links:** `POST/GET/DELETE /api/designs/:id/shares` (nur Besitzer; je Rolle ein Link, idempotent), öffentlich `GET /api/share/:token` und `PUT /api/share/:token` (nur Rolle EDIT; Maße bleiben die des Designs). Unbekannte, abgelaufene, widerrufene Tokens und Links auf Designs im Papierkorb antworten identisch mit 404. Die Antwort enthält keine Besitzerdaten. Öffentliche Routen haben ein IP-Limit (300/min). Der Betrachter (`/s/:token`) rendert die Seiten mit `pageToSvg` und den in Konva gemessenen Zeilenumbrüchen als Inline-SVG; Bearbeiten-Links öffnen denselben Editor, ohne Vorlagen-Tab und ohne Teilen/Umbenennen.
+
+**Uploads:** `POST /api/assets/presign` (angemeldet, 60/min) prüft Typ (PNG/JPEG/WebP/GIF, kein SVG) und Größe (≤ 10 MB), vergibt den Schlüssel `u/<nutzer>/<uuid>.<ext>` (nie aus dem Dateinamen) und liefert eine 5 Minuten gültige PUT-URL, in deren Signatur Content-Type, Content-Length und Cache-Control stehen. Der Browser lädt direkt hoch und prüft danach, dass er die URL laden darf (CORS); sonst wird das Bild eingebettet und der Asset-Eintrag wieder gelöscht. Ohne konfigurierten Speicher antwortet die Route mit 501 und alles läuft wie vorher. Getestet gegen einen S3-Nachbau (`e2e/uploads.mjs`) und gegen die Signatur-Parameter; ein echter RustFS-/S3-Lauf steht aus.
+
+**Konto:** `PATCH /api/auth/profile`, `POST /api/auth/password` (altes Passwort nötig, außer bei reinen Google-Konten), `DELETE /api/auth/account` (E-Mail und Passwort zur Bestätigung; Kaskade löscht Designs, Ordner, Bilder, Links).
 
 ## 6. Backend
 
@@ -158,9 +172,14 @@ Alle Routen außer `/api/auth/*` und `/api/health` verlangen eine gültige Sitzu
 | `DELETE /api/designs/:id`, `DELETE /api/designs/trash` | endgültig löschen (nur aus dem Papierkorb), Papierkorb leeren |
 | `GET/POST/PATCH/DELETE /api/folders` | flache Ordner mit Design-Zähler; Löschen lässt Designs im Hauptbereich |
 | `GET /api/templates?category&q`, `/api/templates/categories` | Galerie mit Vorschau, Filter, Kategorien-Zähler |
+| `PUT /api/designs/:id` | speichern (Schema-geprüft, `version` für Optimistic Locking, optionale PNG-Vorschau); 409 bei Konflikt |
+| `GET/POST /api/designs/:id/shares`, `DELETE …/shares/:linkId` | Freigabe-Links (VIEW/EDIT) verwalten |
+| `GET/PUT /api/share/:token` | öffentlich: Design über Link ansehen bzw. (EDIT) speichern |
+| `GET /api/assets`, `POST /api/assets/presign`, `DELETE /api/assets/:id` | eigene Bilder, signierte Upload-URL |
+| `PATCH /api/auth/profile`, `POST /api/auth/password`, `DELETE /api/auth/account` | Profil, Passwort, Konto |
 
 Papierkorb: Einträge älter als 30 Tage werden beim nächsten Öffnen des Papierkorbs endgültig gelöscht (kein Cron nötig; ein Job kann später ergänzt werden).
-Vorschaubilder sind vorerst SVG-Data-URLs aus `pageToSvg` (`packages/shared`), der Editor ersetzt sie in Etappe (f) durch PNGs. Dieselbe Funktion wird später zur Basis des SVG-Exports.
+Neue Designs bekommen zunächst eine SVG-Vorschau aus `pageToSvg`; sobald der Editor speichert, ersetzt er sie durch ein PNG (Abschnitt 5b).
 
 ## 7. Etappenplan
 
@@ -171,7 +190,7 @@ Vorschaubilder sind vorerst SVG-Data-URLs aus `pageToSvg` (`packages/shared`), d
 | (c) ✅ | Editor-Kern: Canvas, Zoom/Pan, Auswahl, Transformer, Formen/Text/Bild, Undo/Redo, Tastenkürzel, Store-Tests | 100+ Objekte flüssig, Undo/Redo getestet |
 | (d) ✅ | Toolbar, Panels, Ebenen (Drag-Sortierung), Gruppieren, Ausrichten, Smart Guides, Bildfilter/Crop, Hintergründe, mehrseitig | Alle Muss-Funktionen bedienbar |
 | (e) ✅ | 20+ Vorlagen, Export PNG/JPG/SVG/PDF | Vorlage anwenden und exportieren |
-| (f) | Autosave, Speichern in DB, Teilen per Link, Einstellungen/Profil | Reload behält Design, Link öffnet Ansicht |
+| (f) ✅ | Autosave, Speichern in DB, Teilen per Link, Einstellungen/Profil | Reload behält Design, Link öffnet Ansicht |
 
 ## 8. Risiken
 

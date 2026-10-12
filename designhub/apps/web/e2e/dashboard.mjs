@@ -21,11 +21,11 @@ ok('7 Formate + eigene Größe (zusammen 8)', (await p.locator('section').first(
 ok('Leerer Zustand "Zuletzt bearbeitet"', await p.locator('text=Noch keine Designs').count() === 1);
 await p.waitForSelector('main button:has(img)');
 const tplCount = await p.locator('main button:has(img)').count();
-ok('21 Vorlagen mit Vorschau', tplCount === 21);
+ok('35 Vorlagen mit Vorschau', tplCount === 35);
 const chips = await p.locator('[role=tab]').allTextContents();
-ok('Kategorie-Chips mit Zähler (Alle 21)', chips[0].includes('Alle') && chips[0].includes('21') && chips.length === 7);
+ok('Kategorie-Chips mit Zähler (Alle 35)', chips[0].includes('Alle') && chips[0].includes('35') && chips.length === 7);
 await p.click('[role=tab]:has-text("Poster")'); await wait(500);
-ok('Kategorie-Filter Poster = 3', (await p.locator('main button:has(img)').count()) === 3);
+ok('Kategorie-Filter Poster = 5', (await p.locator('main button:has(img)').count()) === 5);
 await p.screenshot({ path: OUT + 'b-home.png' });
 
 // --- Design aus Format ---

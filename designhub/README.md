@@ -1,6 +1,6 @@
 # DesignHub
 
-Browserbasierter Grafik-Editor (Vorlagen, Canvas, Export). Stand: **Etappe (e) – Vorlagen und Export** (zusätzlich zu Auth, Dashboard und Editor-Kern: Schriften, Farbwähler, Ebenen, Gruppen, Ausrichten, Smart Guides, mehrere Seiten, Vorlagen, Hintergründe, Bildwerkzeuge).
+Browserbasierter Grafik-Editor (Vorlagen, Canvas, Export). Stand: **Etappe (f) – Speichern, Teilen, Einstellungen** (alle sechs Etappen sind damit umgesetzt; zusätzlich zu Export und Vorlagen) (zusätzlich zu Auth, Dashboard und Editor-Kern: Schriften, Farbwähler, Ebenen, Gruppen, Ausrichten, Smart Guides, mehrere Seiten, Vorlagen, Hintergründe, Bildwerkzeuge).
 Architektur und Etappenplan: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Voraussetzungen
@@ -74,7 +74,13 @@ Im Dashboard ein Format oder eine Vorlage anklicken. Dann:
 
 **Export-Hinweise:** PNG/JPG/PDF werden im Browser mit denselben Bausteinen wie der Editor gezeichnet (Aussehen identisch). SVG ist ein eigener Vektor-Export; Schriften werden darin nicht eingebettet. PDF-Seiten sind Rasterbilder in der gewählten Größe. Sehr große Flächen (Kante über 16 384 px oder über 64 Mio. Pixel) lehnt der Dialog ab, weil Browser sie nicht zeichnen können.
 
-**Wichtig:** Der Editor speichert noch nicht (kommt in Etappe f). Beim Verlassen warnt der Browser vor ungespeicherten Änderungen.
+**Speichern:** Der Editor speichert automatisch 5 Sekunden nach der letzten Änderung (spätestens nach 30 Sekunden Dauerbearbeitung), sofort mit Strg/Cmd+S, beim Wechsel des Tabs und beim Zurück zum Dashboard. Der Status oben („Gespeichert“, „Speichert…“, „Ungespeicherte Änderungen“, „Speichern fehlgeschlagen, neuer Versuch folgt“) zeigt, ob etwas verloren gehen kann. Offline wird in wachsenden Abständen wiederholt. Wurde dasselbe Design inzwischen anderswo gespeichert (zweiter Tab, Link-Bearbeiter), hält das Speichern an und fragt: „Meine Version behalten“ oder „Neu laden“. Der Browser warnt beim Schließen nur, solange wirklich etwas nicht gespeichert ist. Die Dashboard-Vorschau ist ein PNG der ersten Seite.
+
+**Teilen:** „Teilen“ im Editor-Kopf erzeugt je einen Link zum Ansehen oder Bearbeiten (`/s/<Token>`, 256 Bit Zufall, ohne Anmeldung nutzbar). Ansehen-Links öffnen einen schreibgeschützten Betrachter, Bearbeiten-Links den Editor; Link-Bearbeiter können Inhalte ändern, aber nicht Titel, Format oder Freigaben. „Link deaktivieren“ wirkt sofort. Ein Link stirbt auch, wenn das Design im Papierkorb liegt oder das Konto gelöscht wird.
+
+**Einstellungen:** `/app/settings`: Name, Farbschema, Passwort ändern (Google-Konten können eines setzen), Konto löschen (E-Mail und Passwort zur Bestätigung; löscht Designs, Ordner und Bildverweise).
+
+**Bilder:** Mit eingerichtetem Objektspeicher (S3-Werte in `.env`) lädt der Browser Bilder direkt hoch und das Design speichert nur die URL; das Uploads-Panel zeigt sie danach unter „Meine Bilder“. Ohne Speicher, ohne Anmeldung (Link-Bearbeiter) oder wenn der Upload scheitert, wird das Bild wie bisher im Dokument eingebettet. Der Bucket muss Browser-Zugriff erlauben: `GET` und `PUT` von `WEB_ORIGIN` (CORS) und lesenden öffentlichen Zugriff auf `S3_PUBLIC_URL`. Hochgeladene Dateien werden beim Löschen eines Designs nicht entfernt (ein Aufräum-Job ist ein sinnvoller nächster Schritt).
 
 ## Ende-zu-Ende-Tests
 
@@ -85,7 +91,7 @@ Skripte unter `apps/web/e2e/` steuern einen echten Browser (Playwright). Vorauss
 npx playwright install chromium
 # in .env setzen und API neu starten, sonst greift das Rate-Limit der Registrierung:
 #   AUTH_RATE_LIMIT_MAX=1000
-cd apps/web && npm run e2e         # Auth, Dashboard, Editor, Transformationen, Werkzeuge, Inhalte, Lineale, Export, Vorlagen (~10 Min.)
+cd apps/web && npm run e2e         # Auth, Dashboard, Editor, Transformationen, Werkzeuge, Inhalte, Lineale, Export, Vorlagen, Speichern/Teilen/Konto, Uploads (~15 Min.)
 npm run e2e:bench                  # Leistungsmessung mit 100/300/1000 Objekten
 ```
 Screenshots landen in `apps/web/e2e/out/`. Mit `E2E_CHROMIUM_PATH` lässt sich ein vorhandener Chromium-Browser verwenden.
@@ -100,4 +106,4 @@ Screenshots landen in `apps/web/e2e/out/`. Mit `E2E_CHROMIUM_PATH` lässt sich e
 
 - `npm audit` meldet noch Funde in Tailwind 3 (`braces`/`chokidar`, nur Build-Zeit, kein Laufzeitcode). Ein Wechsel auf Tailwind 4 ist für später vorgemerkt.
 - Rate-Limit liegt im Speicher (eine API-Instanz). Hinter einem Proxy muss später `trust proxy` gesetzt werden, sonst teilen sich alle Nutzer eine IP.
-- Der Editor speichert noch nicht (Etappe f). Mobil/Touch ist noch nicht für Gesten (Pinch, Zwei-Finger-Pan) ausgelegt. Bilder liegen bis dahin als Data-URL im Dokument.
+- Mobil/Touch ist noch nicht für Gesten (Pinch, Zwei-Finger-Pan) ausgelegt. Link-Bearbeiter sehen keine Live-Änderungen anderer (Konflikte werden beim Speichern erkannt, nicht live synchronisiert).
