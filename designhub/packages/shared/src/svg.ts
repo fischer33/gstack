@@ -86,15 +86,18 @@ function inner(el: Element, defs: string[]): string {
   }
 }
 
-function starPoints(w: number, h: number, n: number): string {
-  const pts: string[] = [];
+/** Eckpunkte eines Sterns im Einheitsquadrat (0..1), Spitze oben. Auch vom Canvas-Renderer genutzt. */
+export function starUnitPoints(n: number): [number, number][] {
+  const pts: [number, number][] = [];
   for (let i = 0; i < n * 2; i++) {
     const a = -Math.PI / 2 + (i * Math.PI) / n;
-    const r = i % 2 ? 0.2 : 0.5; // Verhältnis innen/außen wie im Editor-Standardstern
-    pts.push(`${num(w * (0.5 + r * Math.cos(a)))},${num(h * (0.5 + r * Math.sin(a)))}`);
+    const r = i % 2 ? 0.2 : 0.5; // Verhältnis innen/außen
+    pts.push([0.5 + r * Math.cos(a), 0.5 + r * Math.sin(a)]);
   }
-  return pts.join(' ');
+  return pts;
 }
+
+const starPoints = (w: number, h: number, n: number) => starUnitPoints(n).map(([x, y]) => `${num(w * x)},${num(h * y)}`).join(' ');
 
 /** Grober Umbruch: nimmt pro Zeichen 0,55 em Breite an. Reicht für Vorschaubilder. */
 function wrap(text: string, maxWidth: number, fontSize: number, letterSpacing: number): string[] {
