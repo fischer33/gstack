@@ -4,11 +4,17 @@ import express, { type ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
 import type { Env } from './lib/env';
 import { originCheck } from './middleware/security';
+import type { PrismaClient } from '@prisma/client';
+import { requireAuth } from './middleware/requireAuth';
 import { authRouter } from './routes/auth';
+import { designsRouter } from './routes/designs';
+import { foldersRouter } from './routes/folders';
+import { templatesRouter } from './routes/templates';
 import type { GoogleClient } from './services/google';
 import type { UserRepo } from './services/users';
 
-export interface AppDeps { env: Env; users: UserRepo; google: GoogleClient | null }
+/** `db` ist optional, damit die Auth-Tests ohne Datenbank laufen; ohne `db` gibt es keine Daten-Routen. */
+export interface AppDeps { env: Env; users: UserRepo; google: GoogleClient | null; db?: PrismaClient }
 
 /** Fabrik statt Singleton: Tests übergeben In-Memory-Repo und Google-Stub. */
 export function createApp(deps: AppDeps) {
@@ -22,6 +28,13 @@ export function createApp(deps: AppDeps) {
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
   app.use('/api/auth', authRouter(deps));
+
+  if (deps.db) {
+    const guard = requireAuth(deps.env, deps.users);
+    app.use('/api/designs', guard, designsRouter(deps.db));
+    app.use('/api/folders', guard, foldersRouter(deps.db));
+    app.use('/api/templates', guard, templatesRouter(deps.db));
+  }
 
   const onError: ErrorRequestHandler = (err, _req, res, _next) => {
     if (err instanceof ZodError) {

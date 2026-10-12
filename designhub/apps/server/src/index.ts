@@ -7,5 +7,6 @@ import { createGoogleClient } from './services/google';
 import { prismaUserRepo } from './services/users';
 
 const env = loadEnv();
-const app = createApp({ env, users: prismaUserRepo(new PrismaClient()), google: createGoogleClient(env) });
+const db = new PrismaClient();
+const app = createApp({ env, db, users: prismaUserRepo(db), google: createGoogleClient(env) });
 app.listen(env.PORT, () => console.log(`DesignHub API auf http://localhost:${env.PORT}`));
