@@ -1,5 +1,6 @@
 // Seed: Vorlagen-Galerie (mind. 20 laut docs/ARCHITECTURE.md).
 // Idempotent: feste IDs + upsert, mehrfaches Ausführen erzeugt keine Duplikate.
+import '../src/env';
 import { PrismaClient } from '@prisma/client';
 import {
   DOCUMENT_VERSION,
