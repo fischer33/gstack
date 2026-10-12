@@ -80,12 +80,30 @@ Schemaänderungen erhöhen `DOCUMENT_VERSION` und bekommen eine Migrationsfunkti
 
 REST unter `/api`: `auth/*`, `designs` (CRUD, Ordner, Papierkorb, Duplizieren), `templates` (nur lesen), `assets` (Presigned-Upload), `share/:token`. Teilen: `ShareLink` mit Token und Rolle VIEW/EDIT; Zugriff über Token wird serverseitig gegen die Rolle geprüft. Zod validiert jeden Request. Hintergrund entfernen läuft über den Server (API-Key bleibt serverseitig).
 
+## 6a. API-Überblick (Stand Etappe b)
+
+Alle Routen außer `/api/auth/*` und `/api/health` verlangen eine gültige Sitzung. Jede Datenabfrage ist auf den Besitzer begrenzt; fremde IDs antworten wie nicht vorhandene (404, nie 403), damit keine Existenz verraten wird.
+
+| Route | Zweck |
+|---|---|
+| `GET /api/designs?q&folderId&trash&sort&limit` | Liste (ohne Seiteninhalt), Suche im Titel, `folderId=root` = ohne Ordner |
+| `POST /api/designs` | leer (`width`,`height`) oder aus Vorlage (`templateId`); Vorschau wird serverseitig aus der ersten Seite gerendert |
+| `GET /api/designs/:id` | vollständiges Design für den Editor (nicht für Papierkorb-Einträge) |
+| `PATCH /api/designs/:id` | Titel ändern, in Ordner verschieben (`folderId: null` = zurück in den Hauptbereich) |
+| `POST /api/designs/:id/duplicate`, `/trash`, `/restore` | Kopie, in den Papierkorb, wiederherstellen |
+| `DELETE /api/designs/:id`, `DELETE /api/designs/trash` | endgültig löschen (nur aus dem Papierkorb), Papierkorb leeren |
+| `GET/POST/PATCH/DELETE /api/folders` | flache Ordner mit Design-Zähler; Löschen lässt Designs im Hauptbereich |
+| `GET /api/templates?category&q`, `/api/templates/categories` | Galerie mit Vorschau, Filter, Kategorien-Zähler |
+
+Papierkorb: Einträge älter als 30 Tage werden beim nächsten Öffnen des Papierkorbs endgültig gelöscht (kein Cron nötig; ein Job kann später ergänzt werden).
+Vorschaubilder sind vorerst SVG-Data-URLs aus `pageToSvg` (`packages/shared`), der Editor ersetzt sie in Etappe (f) durch PNGs. Dieselbe Funktion wird später zur Basis des SVG-Exports.
+
 ## 7. Etappenplan
 
 | Etappe | Inhalt | Fertig, wenn |
 |---|---|---|
 | (a) ✅ | Setup, Auth (E-Mail + Google), Landing/Login, Theme | Registrieren, Einloggen, Logout im Browser |
-| (b) | Dashboard, Format-Schnellauswahl, „Zuletzt bearbeitet“, Meine Designs, Ordner, Papierkorb | Design anlegen und in der Liste sehen |
+| (b) ✅ | Dashboard, Format-Schnellauswahl, „Zuletzt bearbeitet“, Meine Designs, Ordner, Papierkorb | Design anlegen und in der Liste sehen |
 | (c) | Editor-Kern: Canvas, Zoom/Pan, Auswahl, Transformer, Formen/Text/Bild, Undo/Redo, Tastenkürzel, Store-Tests | 100+ Objekte flüssig, Undo/Redo getestet |
 | (d) | Toolbar, Panels, Ebenen (Drag-Sortierung), Gruppieren, Ausrichten, Smart Guides, Bildfilter/Crop, Hintergründe, mehrseitig | Alle Muss-Funktionen bedienbar |
 | (e) | 20+ Vorlagen, Export PNG/JPG/SVG/PDF | Vorlage anwenden und exportieren |
