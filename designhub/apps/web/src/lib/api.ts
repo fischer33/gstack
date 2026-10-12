@@ -3,7 +3,7 @@ export const UNAUTHORIZED_EVENT = 'dh:unauthorized';
 
 /** Fehler vom Server: HTTP-Status, Fehlercode und ggf. Feldfehler (bei `validation`). */
 export class ApiError extends Error {
-  constructor(public status: number, public code: string, public fields: Record<string, string> = {}) {
+  constructor(public status: number, public code: string, public fields: Record<string, string> = {}, public body: Record<string, unknown> = {}) {
     super(code);
   }
 }
@@ -17,7 +17,8 @@ export async function api<T = unknown>(path: string, init: { method?: string; bo
     credentials: 'same-origin',
   });
   if (res.status === 204) return undefined as T;
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, data.error ?? 'unknown', data.fields);
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError(res.status, data?.error ?? 'unknown', data?.fields, data ?? {});
+  if (data === null) throw new ApiError(res.status, 'bad_response'); // 200 ohne JSON (z. B. Proxy-Fehlerseite) ist kein Erfolg
   return data as T;
 }
