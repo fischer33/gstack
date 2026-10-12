@@ -1,13 +1,23 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
-import { describeAuthError, type FormErrors } from '@/auth/errors';
+import { describeAuthError, diagnoseServer, isServerFault, type FormErrors, type Health } from '@/auth/errors';
 import { Logo } from '@/components/Logo';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+
+async function checkHealth(): Promise<Health> {
+  try {
+    // Läuft die API nicht, antwortet der Vite-Proxy mit einem Fehler ohne JSON: dann gilt sie als nicht erreichbar.
+    const body = await (await fetch('/api/health')).json();
+    return { reachable: true, db: body.db };
+  } catch {
+    return { reachable: false };
+  }
+}
 
 const GoogleG = () => (
   <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden>
@@ -41,7 +51,10 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
       // Bei Erfolg wechselt GuestOnly automatisch nach /app.
       await (isRegister ? register(name, email, password) : login(email, password));
     } catch (err) {
-      setErrors(describeAuthError(err));
+      const e = describeAuthError(err);
+      // Bei Server-/Netzwerkfehlern nachsehen, was genau fehlt (API aus, Datenbank aus, ...)
+      if (isServerFault(err)) e.form = diagnoseServer(await checkHealth());
+      setErrors(e);
       setBusy(false);
     }
   }

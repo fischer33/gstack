@@ -75,6 +75,12 @@ describe('E-Mail/Passwort', () => {
   });
 });
 
+describe('Health', () => {
+  it('ohne Datenbank-Anbindung einfach ok', async () => {
+    expect((await request(makeApp().app).get('/api/health')).body).toEqual({ ok: true });
+  });
+});
+
 describe('Google OAuth', () => {
   const profile = { sub: 'g-123', email: 'ada@example.com', emailVerified: true, name: 'Ada G', picture: 'https://img/x.png' };
 

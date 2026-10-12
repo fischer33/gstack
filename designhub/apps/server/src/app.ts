@@ -26,7 +26,12 @@ export function createApp(deps: AppDeps) {
   app.use(express.json({ limit: '10mb' }));
   app.use(originCheck(deps.env));
 
-  app.get('/api/health', (_req, res) => res.json({ ok: true }));
+  // `db` zeigt, ob die Datenbank antwortet. Das Frontend nutzt es, um bei Server-Fehlern die Ursache zu nennen.
+  app.get('/api/health', async (_req, res) => {
+    if (!deps.db) return void res.json({ ok: true });
+    const db = await deps.db.$queryRaw`select 1`.then(() => true, () => false);
+    res.json({ ok: db, db });
+  });
   app.use('/api/auth', authRouter(deps));
 
   if (deps.db) {

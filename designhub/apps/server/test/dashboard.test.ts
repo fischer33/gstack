@@ -37,6 +37,10 @@ describe.skipIf(!dbUp)('Dashboard-API (mit Datenbank)', () => {
   const create = async (agent: typeof a, body: object = { width: 1080, height: 1080 }) => (await agent.post('/api/designs').send(body)).body;
   const titles = async (agent: typeof a, query = '') => (await agent.get(`/api/designs${query}`)).body.designs.map((d: { title: string }) => d.title);
 
+  it('Health meldet die Datenbank', async () => {
+    expect((await request(app).get('/api/health')).body).toEqual({ ok: true, db: true });
+  });
+
   it('verlangt Anmeldung', async () => {
     expect((await request(app).get('/api/designs')).status).toBe(401);
     expect((await request(app).get('/api/templates')).status).toBe(401);
